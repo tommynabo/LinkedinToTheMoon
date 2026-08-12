@@ -1,0 +1,19 @@
+{
+  "name": "linkedin-to-the-moon",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sistema de adquisicion de clientes en LinkedIn: motor de contenido, prospeccion y personalizacion sobre Google Apps Script.",
+  "scripts": {
+    "login": "clasp login",
+    "create": "clasp create --type sheets --title \"LinkedIn to the Moon\" --rootDir src",
+    "push": "clasp push",
+    "watch": "clasp push --watch",
+    "open": "clasp open",
+    "deploy": "clasp push && clasp open"
+  },
+  "devDependencies": {
+    "@google/clasp": "^2.4.2",
+    "@types/google-apps-script": "^1.0.83",
+    "typescript": "^5.5.4"
+  }
+}
