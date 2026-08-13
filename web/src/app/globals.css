@@ -228,6 +228,110 @@ textarea {
   font-size: 14px;
 }
 
+.filtros-estado {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.filtros-estado a {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 14px;
+  font-size: 13px;
+  text-decoration: none;
+  border: 1px solid var(--border);
+  color: #1c1e21;
+  background: #fff;
+}
+
+.filtros-estado a.activo {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.prospecto-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.prospecto-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.prospecto-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.prospecto-header h3 {
+  margin: 0 0 4px;
+  font-size: 15px;
+}
+
+.prospecto-cargo {
+  margin: 0;
+  font-size: 13px;
+  color: #606770;
+}
+
+.prospecto-links {
+  display: flex;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.prospecto-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.prospecto-section-header span {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #606770;
+}
+
+.prospecto-text {
+  margin: 0;
+  font-size: 14px;
+  white-space: pre-wrap;
+  background: #f6f7f9;
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.prospecto-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.prospecto-fecha {
+  font-size: 11px;
+  color: #9aa1a8;
+}
+
 .muted {
   color: #606770;
   font-size: 13px;

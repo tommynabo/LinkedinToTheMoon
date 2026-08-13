@@ -38,6 +38,7 @@ export interface ProspectoRow {
   score: number;
   dato_personalizado: string | null;
   ultimo_post_texto: string | null;
+  ultimo_post_url: string | null;
   comentario_post: string | null;
   texto_mensaje: string | null;
   link_audio: string | null;

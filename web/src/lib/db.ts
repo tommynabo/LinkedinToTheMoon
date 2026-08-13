@@ -47,6 +47,7 @@ async function crearTablas(): Promise<void> {
       score INTEGER NOT NULL DEFAULT 0,
       dato_personalizado TEXT,
       ultimo_post_texto TEXT,
+      ultimo_post_url TEXT,
       comentario_post TEXT,
       texto_mensaje TEXT,
       link_audio TEXT,
@@ -58,6 +59,7 @@ async function crearTablas(): Promise<void> {
   // Migración para instalaciones ya existentes (CREATE TABLE IF NOT EXISTS no añade columnas
   // a una tabla que ya existía antes de que se introdujeran estas dos).
   await sql`ALTER TABLE prospectos ADD COLUMN IF NOT EXISTS ultimo_post_texto TEXT;`;
+  await sql`ALTER TABLE prospectos ADD COLUMN IF NOT EXISTS ultimo_post_url TEXT;`;
   await sql`ALTER TABLE prospectos ADD COLUMN IF NOT EXISTS comentario_post TEXT;`;
 
   await sql`

@@ -24,6 +24,14 @@ export async function archivarEnviadosAction(): Promise<void> {
   revalidatePath('/crm');
 }
 
+export async function deleteProspectoAction(formData: FormData): Promise<void> {
+  await ensureSchema();
+  const id = Number(formData.get('id'));
+  if (!id) return;
+  await sql`DELETE FROM prospectos WHERE id = ${id}`;
+  revalidatePath('/prospectos');
+}
+
 export async function updatePostRow(formData: FormData): Promise<void> {
   await ensureSchema();
   const id = Number(formData.get('id'));
