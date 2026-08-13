@@ -1,7 +1,11 @@
 /**
  * engines/personalization.ts
- * Motor ③ — mensaje personalizado + audio con tu voz clonada. Procesa en lote los
- * prospectos "Pendiente" sin mensaje todavía, hasta PROSPECTOS_POR_DIA.
+ * Motor ③ — mensaje personalizado + comentario de post + audio con tu voz clonada. Procesa
+ * en lote los prospectos "Pendiente" sin mensaje todavía, hasta PROSPECTOS_POR_DIA.
+ *
+ * El ICP no está limitado a un idioma: los perfiles pueden estar en español, inglés o
+ * cualquier otro. Por eso cada prompt le pide a Claude que detecte el idioma del propio
+ * perfil (cargo/post/bio) y responda ÍNTEGRAMENTE en ese idioma, en vez de asumir español.
  */
 import { ensureSchema, sql } from '../db';
 import { PROSPECTOS_POR_DIA } from '../config';
@@ -22,8 +26,9 @@ export async function personalizarMensajesYAudios(): Promise<ResultadoPersonaliz
     nombre: string;
     cargo: string | null;
     dato_personalizado: string | null;
+    ultimo_post_texto: string | null;
   }>`
-    SELECT id, nombre, cargo, dato_personalizado FROM prospectos
+    SELECT id, nombre, cargo, dato_personalizado, ultimo_post_texto FROM prospectos
     WHERE estado = 'Pendiente' AND (texto_mensaje IS NULL OR texto_mensaje = '')
     ORDER BY score DESC, id ASC
     LIMIT ${PROSPECTOS_POR_DIA}
@@ -33,7 +38,15 @@ export async function personalizarMensajesYAudios(): Promise<ResultadoPersonaliz
 
   for (const row of rows) {
     try {
-      const mensaje = await generarMensajePersonalizado(row.nombre, row.cargo || '', row.dato_personalizado || '');
+      const ultimoPost = row.ultimo_post_texto?.trim() || null;
+      const bio = row.dato_personalizado?.trim() || '';
+
+      let comentarioPost: string | null = null;
+      if (ultimoPost) {
+        comentarioPost = await generarComentarioPost(row.nombre, row.cargo || '', ultimoPost);
+      }
+
+      const mensaje = await generarMensajePersonalizado(row.nombre, row.cargo || '', bio, ultimoPost);
       let linkAudio: string | null = null;
 
       if (audioDisponible) {
@@ -45,7 +58,9 @@ export async function personalizarMensajesYAudios(): Promise<ResultadoPersonaliz
       }
 
       await sql`
-        UPDATE prospectos SET texto_mensaje = ${mensaje}, link_audio = ${linkAudio} WHERE id = ${row.id}
+        UPDATE prospectos
+        SET texto_mensaje = ${mensaje}, comentario_post = ${comentarioPost}, link_audio = ${linkAudio}
+        WHERE id = ${row.id}
       `;
       generados++;
     } catch (err) {
@@ -58,10 +73,52 @@ export async function personalizarMensajesYAudios(): Promise<ResultadoPersonaliz
   return { generados, audioDisponible };
 }
 
-async function generarMensajePersonalizado(nombre: string, cargo: string, datoPersonalizado: string): Promise<string> {
+const INSTRUCCION_IDIOMA = `
+Detecta el idioma en el que está escrito el perfil (el texto de referencia que te paso abajo:
+su cargo, su post o su bio). Responde ÍNTEGRAMENTE en ese mismo idioma (puede ser español,
+inglés o cualquier otro) — nunca traduzcas ni cambies de idioma.
+`.trim();
+
+async function generarComentarioPost(nombre: string, cargo: string, ultimoPost: string): Promise<string> {
   const prompt = `
-Genera un mensaje de conexión de LinkedIn de máximo 3 frases para ${nombre}, ${cargo}.
-Menciona de forma natural este dato personalizado: "${datoPersonalizado}".
+${INSTRUCCION_IDIOMA}
+
+Este es el último post de LinkedIn de ${nombre} (${cargo}):
+"""
+${ultimoPost}
+"""
+
+Escribe un comentario para dejar directamente debajo de ESE post en LinkedIn. Debe demostrar
+que lo has leído de verdad: menciona algo concreto y específico del contenido del post (una
+idea, un dato o una frase suya), no un cumplido genérico tipo "¡Gran post!".
+Máximo 2-3 frases. Tono cercano y humano, cero venta, cero autopromoción.
+
+Responde ÚNICAMENTE con el texto del comentario, sin comillas ni explicaciones adicionales.
+`.trim();
+
+  const texto = await callClaude(prompt, 250);
+  return texto.trim();
+}
+
+async function generarMensajePersonalizado(
+  nombre: string,
+  cargo: string,
+  bio: string,
+  ultimoPost: string | null
+): Promise<string> {
+  const referencia = ultimoPost
+    ? `Su último post en LinkedIn decía (resúmelo o cita algo concreto, no lo copies entero):\n"""\n${ultimoPost}\n"""`
+    : `Este es un dato personalizado sobre su perfil/bio: "${bio}".`;
+
+  const prompt = `
+${INSTRUCCION_IDIOMA}
+
+Genera un mensaje de conexión de LinkedIn de máximo 3-4 frases para ${nombre}, ${cargo}.
+
+${referencia}
+
+Haz referencia natural a ese contenido concreto (su post si lo tienes, si no su bio) — debe
+notarse que el mensaje es solo para ella/él, no una plantilla genérica.
 
 No vendas nada en este primer mensaje. El objetivo único es que acepte la conexión y sienta
 curiosidad. Cierra con una pregunta abierta y breve.
@@ -78,3 +135,4 @@ Responde ÚNICAMENTE con el texto del mensaje, sin comillas ni explicaciones adi
 function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
 }
+

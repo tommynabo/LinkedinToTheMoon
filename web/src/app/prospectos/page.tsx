@@ -7,6 +7,7 @@ function pillClass(estado: string): string {
   const key = estado.toLowerCase();
   if (key === 'enviado') return 'pill enviado';
   if (key === 'descartado') return 'pill descartado';
+  if (key === 'comentado') return 'pill comentado';
   return 'pill pendiente';
 }
 
@@ -37,6 +38,7 @@ export default async function ProspectosPage() {
               <th>Score</th>
               <th>Dato personalizado</th>
               <th>Mensaje</th>
+              <th>Comentario para su post</th>
               <th>Audio</th>
               <th>Estado</th>
             </tr>
@@ -55,6 +57,9 @@ export default async function ProspectosPage() {
                 <td>{p.score}</td>
                 <td style={{ minWidth: 200 }}>{p.dato_personalizado}</td>
                 <td style={{ whiteSpace: 'pre-wrap', minWidth: 260 }}>{p.texto_mensaje}</td>
+                <td style={{ whiteSpace: 'pre-wrap', minWidth: 220 }}>
+                  {p.comentario_post || <span className="muted">—</span>}
+                </td>
                 <td>
                   {p.link_audio ? (
                     <audio controls src={p.link_audio} style={{ maxWidth: 180 }} />
@@ -68,6 +73,7 @@ export default async function ProspectosPage() {
                     <span className={pillClass(p.estado)}>{p.estado}</span>
                     <select name="estado" defaultValue={p.estado}>
                       <option value="Pendiente">Pendiente</option>
+                      <option value="Comentado">Comentado</option>
                       <option value="Enviado">Enviado</option>
                       <option value="Descartado">Descartado</option>
                     </select>
@@ -78,7 +84,7 @@ export default async function ProspectosPage() {
             ))}
             {prospectos.length === 0 && (
               <tr>
-                <td colSpan={9} className="muted">
+                <td colSpan={10} className="muted">
                   Todavía no hay prospectos. Configura Apify o pega un export en /import.
                 </td>
               </tr>

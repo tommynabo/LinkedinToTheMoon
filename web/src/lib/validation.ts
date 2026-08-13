@@ -10,7 +10,13 @@ import type { ProspectoCrudo } from './types';
 
 export function normalizeLinkedInUrl(url: string): string {
   if (!url) return '';
-  return url.trim().toLowerCase().replace(/\/+$/, '').replace(/^https?:\/\//, '').replace(/^www\./, '');
+  return url
+    .trim()
+    .toLowerCase()
+    .replace(/[?#].*$/, '')
+    .replace(/\/+$/, '')
+    .replace(/^https?:\/\//, '')
+    .replace(/^www\./, '');
 }
 
 export function esUrlLinkedInValida(url: string): boolean {

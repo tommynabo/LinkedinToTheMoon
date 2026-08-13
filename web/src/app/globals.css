@@ -145,6 +145,11 @@ tr:nth-child(even) td {
   color: var(--danger);
 }
 
+.pill.comentado {
+  background: #cce5ff;
+  color: #004085;
+}
+
 .pill.borrador {
   background: #e2e3e5;
   color: #383d41;

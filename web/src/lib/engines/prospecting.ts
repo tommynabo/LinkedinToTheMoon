@@ -6,7 +6,7 @@
  */
 import { ensureSchema, sql } from '../db';
 import { PROSPECTOS_POR_DIA } from '../config';
-import { buscarProspectosConApify, tieneApifyConfigurado } from '../apify';
+import { buscarProspectosConApify, buscarUltimosPosts, tieneApifyConfigurado } from '../apify';
 import { calcularScore, getUrlsConocidas } from '../scoring';
 import { esProspectoValido, normalizeLinkedInUrl } from '../validation';
 import type { ProspectoCrudo } from '../types';
@@ -47,11 +47,23 @@ export async function buscarProspectosDeHoy(): Promise<ResultadoProspeccion> {
     .sort((a, b) => b.score - a.score)
     .slice(0, PROSPECTOS_POR_DIA);
 
+  // El buscador de perfiles no trae el contenido de sus posts recientes; lo pedimos aparte
+  // (segundo actor, barato) solo para los que ya pasaron el filtro, y solo si venían de Apify
+  // (el import manual ya puede traer "ultimo_post" pegado a mano en la columna correspondiente).
+  let ultimosPosts = new Map<string, string>();
+  if (fuente === 'Apify') {
+    const urlsSinPost = nuevos.filter(({ prospecto }) => !prospecto.ultimoPostTema).map(({ prospecto }) => prospecto.url);
+    if (urlsSinPost.length > 0) {
+      ultimosPosts = await buscarUltimosPosts(urlsSinPost);
+    }
+  }
+
   for (const { prospecto, score } of nuevos) {
+    const ultimoPost = prospecto.ultimoPostTema || ultimosPosts.get(normalizeLinkedInUrl(prospecto.url)) || null;
     await sql`
-      INSERT INTO prospectos (fecha_extraccion, nombre, url_perfil, cargo, score, dato_personalizado, estado)
+      INSERT INTO prospectos (fecha_extraccion, nombre, url_perfil, cargo, score, dato_personalizado, ultimo_post_texto, estado)
       VALUES (CURRENT_DATE, ${prospecto.nombre}, ${prospecto.url}, ${prospecto.cargo}, ${score},
-              ${prospecto.ultimoPostTema || prospecto.bio}, 'Pendiente')
+              ${prospecto.bio || null}, ${ultimoPost}, 'Pendiente')
     `;
   }
 
@@ -88,7 +100,12 @@ async function leerProspectosImportados(): Promise<ProspectoCrudo[]> {
     }));
 }
 
-/** Mueve al histórico "crm" las filas de "prospectos" marcadas Enviado/Descartado. */
+/**
+ * Mueve al histórico "crm" las filas de "prospectos" marcadas Enviado/Descartado.
+ * "Comentado" se deja fuera a propósito: es un estado intermedio (ya dejaste el
+ * comentario en su post, pero todavía no has enviado la conexión) que debe seguir
+ * visible en /prospectos hasta que pase a Enviado o Descartado.
+ */
 export async function archivarProspectosProcesados(): Promise<number> {
   await ensureSchema();
 
