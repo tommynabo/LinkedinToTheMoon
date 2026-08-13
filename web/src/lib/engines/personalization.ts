@@ -79,7 +79,7 @@ su cargo, su post o su bio). Responde ÍNTEGRAMENTE en ese mismo idioma (puede s
 inglés o cualquier otro) — nunca traduzcas ni cambies de idioma.
 `.trim();
 
-async function generarComentarioPost(nombre: string, cargo: string, ultimoPost: string): Promise<string> {
+export async function generarComentarioPost(nombre: string, cargo: string, ultimoPost: string): Promise<string> {
   const prompt = `
 ${INSTRUCCION_IDIOMA}
 
@@ -88,15 +88,18 @@ Este es el último post de LinkedIn de ${nombre} (${cargo}):
 ${ultimoPost}
 """
 
-Escribe un comentario para dejar directamente debajo de ESE post en LinkedIn. Debe demostrar
-que lo has leído de verdad: menciona algo concreto y específico del contenido del post (una
-idea, un dato o una frase suya), no un cumplido genérico tipo "¡Gran post!".
-Máximo 2-3 frases. Tono cercano y humano, cero venta, cero autopromoción.
+Escribe un comentario corto para dejar directamente debajo de ESE post en LinkedIn. Nada
+elaborado ni "especial": algo cortito, personal y chill, del estilo de un comentario real que
+dejarías sin pensarlo mucho. Debe notarse que lo has leído (una sola idea o frase concreta del
+post, no un cumplido genérico tipo "¡Gran post!"), pero sin sonar a ensayo ni a venta.
+
+Máximo 1 frase corta (excepcionalmente 2 muy breves). Tono casual, como comentando entre
+colegas, nunca formal ni entusiasta de más.
 
 Responde ÚNICAMENTE con el texto del comentario, sin comillas ni explicaciones adicionales.
 `.trim();
 
-  const texto = await callClaude(prompt, 250);
+  const texto = await callClaude(prompt, 120);
   return texto.trim();
 }
 
