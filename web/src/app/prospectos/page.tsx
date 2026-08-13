@@ -74,10 +74,22 @@ export default async function ProspectosPage({
               <a href={p.url_perfil} target="_blank" rel="noreferrer">
                 🔗 Ver perfil
               </a>
+            </div>
+
+            <div className="prospecto-post-action">
+              <div className="prospecto-section-header">
+                <span>💬 Comenta su último post</span>
+                {p.comentario_post && <CopyButton text={p.comentario_post} label="📋 Copiar comentario" />}
+              </div>
               {p.ultimo_post_url && (
-                <a href={p.ultimo_post_url} target="_blank" rel="noreferrer">
-                  📝 Ver post
+                <a href={p.ultimo_post_url} target="_blank" rel="noreferrer" className="prospecto-post-link">
+                  📝 Abrir el post →
                 </a>
+              )}
+              {p.comentario_post ? (
+                <p className="prospecto-text">{p.comentario_post}</p>
+              ) : (
+                <p className="muted">Sin post reciente — nada que comentar.</p>
               )}
             </div>
 
@@ -88,16 +100,6 @@ export default async function ProspectosPage({
               </div>
               <p className="prospecto-text">{p.texto_mensaje || '—'}</p>
             </div>
-
-            {p.comentario_post && (
-              <div>
-                <div className="prospecto-section-header">
-                  <span>Comentario para su post</span>
-                  <CopyButton text={p.comentario_post} label="📋 Copiar" />
-                </div>
-                <p className="prospecto-text">{p.comentario_post}</p>
-              </div>
-            )}
 
             {p.link_audio && <audio controls src={p.link_audio} style={{ width: '100%' }} />}
 

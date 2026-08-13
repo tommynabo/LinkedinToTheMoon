@@ -1,14 +1,15 @@
 /**
  * engines/personalization.ts
  * Motor ③ — mensaje personalizado + comentario de post + audio con tu voz clonada. Procesa
- * en lote los prospectos "Pendiente" sin mensaje todavía, hasta PROSPECTOS_POR_DIA.
+ * TODOS los prospectos "Pendiente" que aún no tengan mensaje (sin límite de cantidad — el
+ * mensaje de conexión es obligatorio para todos, generarlo es barato; solo el comentario de
+ * post es opcional, y solo si el prospecto tiene un último post capturado).
  *
  * El ICP no está limitado a un idioma: los perfiles pueden estar en español, inglés o
  * cualquier otro. Por eso cada prompt le pide a Claude que detecte el idioma del propio
  * perfil (cargo/post/bio) y responda ÍNTEGRAMENTE en ese idioma, en vez de asumir español.
  */
 import { ensureSchema, sql } from '../db';
-import { PROSPECTOS_POR_DIA } from '../config';
 import { callClaude } from '../claude';
 import { generarAudioPersonalizado, tieneAudioHabilitado } from '../elevenlabs';
 
@@ -31,7 +32,6 @@ export async function personalizarMensajesYAudios(): Promise<ResultadoPersonaliz
     SELECT id, nombre, cargo, dato_personalizado, ultimo_post_texto FROM prospectos
     WHERE estado = 'Pendiente' AND (texto_mensaje IS NULL OR texto_mensaje = '')
     ORDER BY score DESC, id ASC
-    LIMIT ${PROSPECTOS_POR_DIA}
   `;
 
   let generados = 0;

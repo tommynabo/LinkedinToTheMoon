@@ -292,6 +292,24 @@ textarea {
   font-size: 13px;
 }
 
+.prospecto-post-action {
+  background: #eaf3fc;
+  border: 1px solid #c9e0f5;
+  border-radius: 6px;
+  padding: 10px;
+}
+
+.prospecto-post-action .prospecto-text {
+  background: #fff;
+}
+
+.prospecto-post-link {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
 .prospecto-section-header {
   display: flex;
   justify-content: space-between;
