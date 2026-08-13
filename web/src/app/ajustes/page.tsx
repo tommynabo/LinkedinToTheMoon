@@ -8,15 +8,23 @@ interface EnvCheck {
 }
 
 function construirChecks(): EnvCheck[] {
+  const necesitaBlob = Boolean(
+    process.env.OPENAI_API_KEY || (process.env.ELEVENLABS_API_KEY && process.env.ELEVENLABS_VOICE_ID)
+  );
   return [
     { nombre: 'POSTGRES_URL', descripcion: 'Base de datos (la crea Vercel Postgres automáticamente)', obligatoria: true, configurada: !!process.env.POSTGRES_URL },
-    { nombre: 'BLOB_READ_WRITE_TOKEN', descripcion: 'Almacenamiento de audios/imágenes (Vercel Blob)', obligatoria: true, configurada: !!process.env.BLOB_READ_WRITE_TOKEN },
+    {
+      nombre: 'BLOB_READ_WRITE_TOKEN',
+      descripcion: 'Almacenamiento de audios/imágenes (Vercel Blob). Solo hace falta si activas OPENAI_API_KEY y/o ElevenLabs; se provisiona sola al conectar un Blob store en Vercel → Storage.',
+      obligatoria: necesitaBlob,
+      configurada: !!process.env.BLOB_READ_WRITE_TOKEN,
+    },
     { nombre: 'ANTHROPIC_API_KEY', descripcion: 'Genera posts y mensajes con Claude', obligatoria: true, configurada: !!process.env.ANTHROPIC_API_KEY },
     { nombre: 'CRON_SECRET', descripcion: 'Protege el endpoint /api/cron/daily', obligatoria: true, configurada: !!process.env.CRON_SECRET },
     { nombre: 'DASHBOARD_USER / DASHBOARD_PASSWORD', descripcion: 'Basic Auth de todo el dashboard', obligatoria: true, configurada: !!(process.env.DASHBOARD_USER && process.env.DASHBOARD_PASSWORD) },
     { nombre: 'OPENAI_API_KEY', descripcion: 'Genera la imagen de portada del post (opcional)', obligatoria: false, configurada: !!process.env.OPENAI_API_KEY },
     { nombre: 'ELEVENLABS_API_KEY / ELEVENLABS_VOICE_ID', descripcion: 'Genera el audio con tu voz clonada (opcional)', obligatoria: false, configurada: !!(process.env.ELEVENLABS_API_KEY && process.env.ELEVENLABS_VOICE_ID) },
-    { nombre: 'APIFY_API_TOKEN / APIFY_ACTOR_ID', descripcion: 'Búsqueda automática de prospectos (opcional, si no: usa /import)', obligatoria: false, configurada: !!(process.env.APIFY_API_TOKEN && process.env.APIFY_ACTOR_ID) },
+    { nombre: 'APIFY_API_TOKEN / APIFY_ACTOR_ID', descripcion: 'Búsqueda automática de prospectos (opcional, si no: usa /import). Actor recomendado: harvestapi/linkedin-profile-search', obligatoria: false, configurada: !!(process.env.APIFY_API_TOKEN && process.env.APIFY_ACTOR_ID) },
     { nombre: 'RESEND_API_KEY / NOTIFICATION_EMAIL', descripcion: 'Correo-resumen diario (opcional)', obligatoria: false, configurada: !!(process.env.RESEND_API_KEY && process.env.NOTIFICATION_EMAIL) },
   ];
 }

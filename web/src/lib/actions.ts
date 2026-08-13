@@ -41,6 +41,14 @@ export async function updatePostRow(formData: FormData): Promise<void> {
   revalidatePath('/posts');
 }
 
+export async function deletePostAction(formData: FormData): Promise<void> {
+  await ensureSchema();
+  const id = Number(formData.get('id'));
+  if (!id) return;
+  await sql`DELETE FROM posts WHERE id = ${id}`;
+  revalidatePath('/posts');
+}
+
 export async function addIdeaAction(formData: FormData): Promise<void> {
   await ensureSchema();
   const idea = String(formData.get('idea') || '').trim();

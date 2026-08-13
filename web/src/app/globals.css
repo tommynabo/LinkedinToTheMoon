@@ -181,6 +181,12 @@ button.secondary {
   border: 1px solid var(--accent);
 }
 
+button.danger {
+  background: #fff;
+  color: var(--danger);
+  border: 1px solid var(--danger);
+}
+
 form.inline {
   display: flex;
   gap: 6px;

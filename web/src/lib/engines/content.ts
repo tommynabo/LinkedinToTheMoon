@@ -29,8 +29,9 @@ export async function generarPostDelDia(): Promise<ResultadoPost> {
   const pilar = elegirPilarDelDia();
   const idea = await tomarSiguienteIdeaSinUsar();
   const ejemplos = await obtenerMejoresPostsComoEjemplo(2);
+  const temasRecientes = await obtenerTemasRecientes(8);
 
-  const prompt = construirPromptMaestro(pilar, idea, ejemplos);
+  const prompt = construirPromptMaestro(pilar, idea, ejemplos, temasRecientes);
   const post = await callClaudeJSON<PostGenerado>(prompt, 1200);
 
   let imagenUrl: string | null = null;
@@ -74,16 +75,34 @@ async function tomarSiguienteIdeaSinUsar(): Promise<IdeaRow | null> {
 }
 
 async function obtenerMejoresPostsComoEjemplo(cantidad: number): Promise<string[]> {
+  // Excluye los borradores de hoy: si no, al regenerar un post el mismo día se usa el
+  // propio borrador recién creado como "ejemplo de estilo" y Claude acaba repitiéndolo.
   const { rows } = await sql<{ desarrollo: string }>`
     SELECT desarrollo FROM posts
-    WHERE desarrollo IS NOT NULL
+    WHERE desarrollo IS NOT NULL AND fecha < CURRENT_DATE
     ORDER BY likes_comentarios DESC NULLS LAST, id DESC
     LIMIT ${cantidad}
   `;
   return rows.map((r) => r.desarrollo);
 }
 
-function construirPromptMaestro(pilar: ContentPillar, idea: IdeaRow | null, ejemplos: string[]): string {
+/** Últimos hooks+pilar publicados/generados, para que el prompt evite repetir el mismo ángulo. */
+async function obtenerTemasRecientes(cantidad: number): Promise<string[]> {
+  const { rows } = await sql<{ hook_a: string | null; pilar: string }>`
+    SELECT hook_a, pilar FROM posts
+    WHERE fecha >= CURRENT_DATE - INTERVAL '21 days'
+    ORDER BY id DESC
+    LIMIT ${cantidad}
+  `;
+  return rows.filter((r) => r.hook_a).map((r) => `[${r.pilar}] ${r.hook_a}`);
+}
+
+function construirPromptMaestro(
+  pilar: ContentPillar,
+  idea: IdeaRow | null,
+  ejemplos: string[],
+  temasRecientes: string[]
+): string {
   const ejemplosTexto =
     ejemplos.length > 0
       ? ejemplos.map((e, i) => `Ejemplo ${i + 1}:\n${e}`).join('\n\n')
@@ -92,6 +111,11 @@ function construirPromptMaestro(pilar: ContentPillar, idea: IdeaRow | null, ejem
   const ideaTexto = idea
     ? `Idea de partida (usa esto como semilla, no la ignores): "${idea.idea}"`
     : '(No hay idea pendiente en el banco esta semana; parte del ángulo de ejemplo del pilar.)';
+
+  const temasRecientesTexto =
+    temasRecientes.length > 0
+      ? `Temas/ángulos ya publicados recientemente (PROHIBIDO repetirlos o parafrasearlos con otras palabras, busca un ángulo genuinamente distinto):\n${temasRecientes.map((t) => `- ${t}`).join('\n')}`
+      : '';
 
   return `
 Eres el ghostwriter de LinkedIn de Tomás, fundador de una agencia de IA.
@@ -105,7 +129,9 @@ Pilar de hoy: ${pilar.nombre} — ${pilar.objetivo}
 Ángulo de referencia del pilar: "${pilar.ejemploAngulo}"
 ${ideaTexto}
 
-Usa como referencia de estilo estos posts anteriores que funcionaron bien:
+${temasRecientesTexto}
+
+Usa como referencia de estilo (NO de tema) estos posts anteriores que funcionaron bien:
 ${ejemplosTexto}
 
 Genera:

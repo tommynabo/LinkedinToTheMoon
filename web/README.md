@@ -61,6 +61,23 @@ tabla de staging `prospectos_import`, que se rellena desde la página **/import*
 export en CSV/TSV. El cron diario los validará, puntuará, deduplicará contra el histórico y
 tomará los mejores 25 automáticamente.
 
+## Prospección automática con Apify
+
+Actor recomendado: [`harvestapi/linkedin-profile-search`](https://apify.com/harvestapi/linkedin-profile-search)
+("LinkedIn Profile Search Scraper No Cookies") — busca perfiles públicos por palabra clave/
+puesto/ubicación sin necesitar cookies ni cuenta de LinkedIn, y es pago por evento (barato: ~
+$0.10 por página de 25 resultados en modo "Full" + $0.004/perfil).
+
+1. Crea una cuenta en [Apify](https://console.apify.com/sign-up) (el plan gratuito incluye $5/mes).
+2. Copia tu token en Settings → Integrations y ponlo en `APIFY_API_TOKEN`.
+3. Pon `APIFY_ACTOR_ID=harvestapi/linkedin-profile-search`.
+4. (Opcional) `APIFY_SEARCH_QUERY` para sobrescribir la búsqueda por defecto (que usa las
+   palabras clave del ICP: coach, consultor, mentor, fundador de comunidad...), y
+   `APIFY_LOCATIONS` (separadas por coma) para restringir por ubicación.
+
+Si usas otro actor de LinkedIn con un esquema de campos distinto, ajusta `normalizarItem()` en
+[src/lib/apify.ts](src/lib/apify.ts).
+
 ## Notas de seguridad
 
 - Todas las queries usan el tagged template `sql` de `@vercel/postgres` (parametrizado, sin

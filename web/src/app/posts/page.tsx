@@ -1,5 +1,6 @@
 import { getPosts } from '@/lib/queries';
-import { updatePostRow } from '@/lib/actions';
+import { deletePostAction, updatePostRow } from '@/lib/actions';
+import { DeleteButton } from './DeleteButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -69,6 +70,10 @@ export default async function PostsPage() {
                       defaultValue={post.likes_comentarios ?? ''}
                     />
                     <button type="submit">Guardar</button>
+                  </form>
+                  <form action={deletePostAction} style={{ marginTop: 6 }}>
+                    <input type="hidden" name="id" value={post.id} />
+                    <DeleteButton />
                   </form>
                 </td>
               </tr>
