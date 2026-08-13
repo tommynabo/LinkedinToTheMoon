@@ -79,22 +79,38 @@ su cargo, su post o su bio). Responde ÍNTEGRAMENTE en ese mismo idioma (puede s
 inglés o cualquier otro) — nunca traduzcas ni cambies de idioma.
 `.trim();
 
+const INSTRUCCION_TONO = `
+Tono: juvenil, cercano y espontáneo, como si lo escribieras rápido desde el móvil sin pulirlo
+demasiado. Mete muletillas y palabras coloquiales de forma natural — en español algo tipo
+"mola", "molaría", "cositas", "tal cual", "un rollo", "vaya crack", diminutivos...; en otros
+idiomas el equivalente que suene igual de joven y natural en ESE idioma (en inglés algo tipo
+"ngl", "lowkey", "kinda", "love this"). No fuerces la jerga si no encaja con el post — que
+suene a persona real escribiendo rápido, no a plantilla ni a IA.
+`.trim();
+
 export async function generarComentarioPost(nombre: string, cargo: string, ultimoPost: string): Promise<string> {
   const prompt = `
 ${INSTRUCCION_IDIOMA}
+${INSTRUCCION_TONO}
 
 Este es el último post de LinkedIn de ${nombre} (${cargo}):
 """
 ${ultimoPost}
 """
 
-Escribe un comentario corto para dejar directamente debajo de ESE post en LinkedIn. Nada
-elaborado ni "especial": algo cortito, personal y chill, del estilo de un comentario real que
-dejarías sin pensarlo mucho. Debe notarse que lo has leído (una sola idea o frase concreta del
-post, no un cumplido genérico tipo "¡Gran post!"), pero sin sonar a ensayo ni a venta.
+Escribe un comentario corto para dejar directamente debajo de ESE post en LinkedIn.
 
-Máximo 1 frase corta (excepcionalmente 2 muy breves). Tono casual, como comentando entre
-colegas, nunca formal ni entusiasta de más.
+Evita el patrón repetitivo de citar textualmente una frase suya tipo "me quedé pensando en
+eso que dices de...". En vez de eso, elige el enfoque que mejor pegue con este post en
+concreto (varía, no uses siempre el mismo):
+- Una reacción general y directa a la idea de fondo del post (sin citar literalmente una frase).
+- Una pregunta con chispa que le pique la curiosidad sobre el tema, para darle caña.
+- Ponerte de su lado, reforzando o construyendo sobre su punto de vista con algo tuyo.
+
+Nada elaborado ni "especial": cortito, personal y chill, del estilo de un comentario real que
+dejarías sin pensarlo mucho. Debe notarse que lo has leído, pero sin sonar a ensayo ni a venta.
+
+Máximo 1 frase corta (excepcionalmente 2 muy breves).
 
 Responde ÚNICAMENTE con el texto del comentario, sin comillas ni explicaciones adicionales.
 `.trim();
@@ -103,7 +119,7 @@ Responde ÚNICAMENTE con el texto del comentario, sin comillas ni explicaciones 
   return texto.trim();
 }
 
-async function generarMensajePersonalizado(
+export async function generarMensajePersonalizado(
   nombre: string,
   cargo: string,
   bio: string,
@@ -115,18 +131,19 @@ async function generarMensajePersonalizado(
 
   const prompt = `
 ${INSTRUCCION_IDIOMA}
+${INSTRUCCION_TONO}
 
 Genera un mensaje de conexión de LinkedIn de máximo 3-4 frases para ${nombre}, ${cargo}.
 
 ${referencia}
 
 Haz referencia natural a ese contenido concreto (su post si lo tienes, si no su bio) — debe
-notarse que el mensaje es solo para ella/él, no una plantilla genérica.
+notarse que el mensaje es solo para ella/él, no una plantilla genérica. Evita abrir siempre
+igual (nada de "me quedé pensando en tu post sobre..." como fórmula fija); busca un enfoque
+distinto cada vez, el que mejor encaje.
 
 No vendas nada en este primer mensaje. El objetivo único es que acepte la conexión y sienta
 curiosidad. Cierra con una pregunta abierta y breve.
-Tono: cercano, humano, como si Tomás le escribiera un audio de WhatsApp a un colega, no un
-mensaje de ventas.
 
 Responde ÚNICAMENTE con el texto del mensaje, sin comillas ni explicaciones adicionales.
 `.trim();
