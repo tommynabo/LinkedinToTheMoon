@@ -31,3 +31,23 @@ export function detectarIdiomaAprox(texto: string): 'es' | 'pt' | 'en' | 'fr' | 
   if (puntuacionTop === 0) return 'otro';
   return idiomaTop as 'es' | 'en' | 'fr';
 }
+
+const SUBDOMINIO_ESPANA = /:\/\/es\.linkedin\.com\//i;
+const SUBDOMINIO_OTRO_PAIS = /:\/\/([a-z]{2})\.linkedin\.com\//i;
+const MARCADORES_ESPANA =
+  /\b(espa[nñ]a|spain|madrid|barcelona|valencia|sevilla|bilbao|zaragoza|m[aá]laga|murcia|palma de mallorca|valladolid|vigo|gij[oó]n|a coru[nñ]a|alicante|c[oó]rdoba)\b/i;
+
+/**
+ * Heurística barata para decidir si un prospecto es de España específicamente (no solo
+ * hispanohablante en general). Señal principal: el subdominio de país en la URL de LinkedIn
+ * (es.linkedin.com); si la URL trae el subdominio de OTRO país (ar., mx., co., br., uk...)
+ * se descarta España sin mirar el texto, por ser una señal más fiable que las palabras. Si
+ * la URL no trae subdominio de país (www./sin subdominio), cae a buscar España/ciudades
+ * españolas en el texto (cargo+bio).
+ */
+export function esDeEspana(url: string, texto: string): boolean {
+  if (SUBDOMINIO_ESPANA.test(url || '')) return true;
+  const otroPais = (url || '').match(SUBDOMINIO_OTRO_PAIS);
+  if (otroPais && otroPais[1].toLowerCase() !== 'es') return false;
+  return MARCADORES_ESPANA.test(texto || '');
+}

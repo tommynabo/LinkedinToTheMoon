@@ -9,33 +9,15 @@ export const DEFAULT_OPENAI_IMAGE_MODEL = 'gpt-image-1';
 
 export const PROSPECTOS_POR_DIA = 25;
 
-// El ICP acepta cualquier idioma, pero al menos esta proporción de los prospectos elegidos
-// cada día debe ser hispanohablante (ver engines/prospecting.ts). Nunca se incluyen perfiles
-// detectados como portugués/brasileño (exclusión total, no solo cuota).
-export const RATIO_MINIMO_HISPANOHABLANTE = 0.75;
+// El ICP acepta cualquier idioma/país, pero al menos este número de los PROSPECTOS_POR_DIA
+// elegidos cada día debe ser de España específicamente (ver engines/prospecting.ts) — el
+// resto de huecos puede ser de cualquier otro sitio, sin restricción. Nunca se incluyen
+// perfiles detectados como portugués/brasileño (exclusión total, no solo cuota).
+export const MINIMO_ESPANA_POR_DIA = 15;
 
-// Países usados por defecto para sesgar la búsqueda de Apify hacia hispanohablantes cuando
+// País usado por defecto para sesgar una parte de la búsqueda de Apify hacia España cuando
 // no se sobreescribe con APIFY_LOCATIONS (ver apify.ts).
-export const UBICACIONES_HISPANOHABLANTES = [
-  'Spain',
-  'Mexico',
-  'Colombia',
-  'Argentina',
-  'Chile',
-  'Peru',
-  'Ecuador',
-  'Venezuela',
-  'Uruguay',
-  'Paraguay',
-  'Bolivia',
-  'Guatemala',
-  'Costa Rica',
-  'Panama',
-  'Dominican Republic',
-  'Honduras',
-  'El Salvador',
-  'Nicaragua',
-];
+export const UBICACION_PRIORITARIA = 'Spain';
 
 // Formato aceptado como "perfil hiper validado": linkedin.com/in/... con slug no vacío.
 export const LINKEDIN_URL_REGEX = /^https?:\/\/([a-z]{2,3}\.)?linkedin\.com\/in\/[a-zA-Z0-9\-_%À-ÿ]+\/?$/i;

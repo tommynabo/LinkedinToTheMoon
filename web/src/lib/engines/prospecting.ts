@@ -5,9 +5,9 @@
  * valida, puntúa y deduplica contra el histórico (Prospectos + CRM) antes de escribir.
  */
 import { ensureSchema, sql } from '../db';
-import { PROSPECTOS_POR_DIA, RATIO_MINIMO_HISPANOHABLANTE } from '../config';
+import { PROSPECTOS_POR_DIA, MINIMO_ESPANA_POR_DIA } from '../config';
 import { buscarProspectosConApify, buscarUltimosPosts, tieneApifyConfigurado } from '../apify';
-import { detectarIdiomaAprox } from '../idioma';
+import { detectarIdiomaAprox, esDeEspana } from '../idioma';
 import { calcularScore, getUrlsConocidas } from '../scoring';
 import { esProspectoValido, normalizeLinkedInUrl } from '../validation';
 import type { ProspectoCrudo } from '../types';
@@ -16,7 +16,7 @@ export interface ResultadoProspeccion {
   nuevos: number;
   fuente: 'Apify' | 'Import manual' | 'ninguna';
   descartadosPorValidacion: number;
-  hispanohablantes: number;
+  deEspana: number;
 }
 
 export async function buscarProspectosDeHoy(): Promise<ResultadoProspeccion> {
@@ -36,37 +36,37 @@ export async function buscarProspectosDeHoy(): Promise<ResultadoProspeccion> {
   }
 
   if (candidatos.length === 0) {
-    return { nuevos: 0, fuente: 'ninguna', descartadosPorValidacion: 0, hispanohablantes: 0 };
+    return { nuevos: 0, fuente: 'ninguna', descartadosPorValidacion: 0, deEspana: 0 };
   }
 
   const validos = candidatos.filter(esProspectoValido);
   const descartadosPorValidacion = candidatos.length - validos.length;
 
   const urlsConocidas = await getUrlsConocidas();
-  const candidatosConIdioma = validos
+  const candidatosClasificados = validos
     .filter((p) => !urlsConocidas.has(normalizeLinkedInUrl(p.url)))
     .map((p) => ({
       prospecto: p,
       score: calcularScore(p),
       idioma: detectarIdiomaAprox(`${p.cargo} ${p.bio}`),
+      esEspana: esDeEspana(p.url, `${p.cargo} ${p.bio}`),
     }))
     // Exclusión total de portugués/brasileño, pedido explícito del ICP (no es solo cuota).
     .filter((c) => c.idioma !== 'pt');
 
-  // El ICP quiere al menos RATIO_MINIMO_HISPANOHABLANTE de hispanohablantes: se priorizan
-  // los detectados como "es" hasta cubrir esa cuota, y el resto de huecos se rellena con
-  // los mejores candidatos restantes (más hispanos si sobran, si no, cualquier otro idioma
-  // no-portugués).
-  const hispanos = candidatosConIdioma.filter((c) => c.idioma === 'es').sort((a, b) => b.score - a.score);
-  const resto = candidatosConIdioma.filter((c) => c.idioma !== 'es').sort((a, b) => b.score - a.score);
+  // El ICP quiere un mínimo de MINIMO_ESPANA_POR_DIA (de PROSPECTOS_POR_DIA) que sean de
+  // España específicamente: se priorizan los detectados como "de España" hasta cubrir esa
+  // cuota, y el resto de huecos se rellena con los mejores candidatos restantes (de
+  // cualquier otro sitio, sin restricción adicional).
+  const deEspana = candidatosClasificados.filter((c) => c.esEspana).sort((a, b) => b.score - a.score);
+  const resto = candidatosClasificados.filter((c) => !c.esEspana).sort((a, b) => b.score - a.score);
 
-  const cuotaHispana = Math.ceil(PROSPECTOS_POR_DIA * RATIO_MINIMO_HISPANOHABLANTE);
-  const elegidosHispanos = hispanos.slice(0, cuotaHispana);
-  const huecosRestantes = PROSPECTOS_POR_DIA - elegidosHispanos.length;
-  const relleno = [...hispanos.slice(elegidosHispanos.length), ...resto].slice(0, huecosRestantes);
+  const elegidosEspana = deEspana.slice(0, MINIMO_ESPANA_POR_DIA);
+  const huecosRestantes = PROSPECTOS_POR_DIA - elegidosEspana.length;
+  const relleno = [...deEspana.slice(elegidosEspana.length), ...resto].slice(0, huecosRestantes);
 
-  const nuevos = [...elegidosHispanos, ...relleno].sort((a, b) => b.score - a.score);
-  const hispanohablantes = nuevos.filter((c) => c.idioma === 'es').length;
+  const nuevos = [...elegidosEspana, ...relleno].sort((a, b) => b.score - a.score);
+  const totalDeEspana = nuevos.filter((c) => c.esEspana).length;
 
   // El buscador de perfiles no trae el contenido de sus posts recientes; lo pedimos aparte
   // (segundo actor, barato) solo para los que ya pasaron el filtro, y solo si venían de Apify
@@ -94,7 +94,7 @@ export async function buscarProspectosDeHoy(): Promise<ResultadoProspeccion> {
     await sql`DELETE FROM prospectos_import`;
   }
 
-  return { nuevos: nuevos.length, fuente, descartadosPorValidacion, hispanohablantes };
+  return { nuevos: nuevos.length, fuente, descartadosPorValidacion, deEspana: totalDeEspana };
 }
 
 interface ImportRow {

@@ -45,7 +45,7 @@ export async function ejecutarRutinaDiaria(urlDashboard: string): Promise<Resume
       lineas.push('⚠️ No se encontraron prospectos nuevos (configura Apify o pega un export en /import).');
     } else {
       lineas.push(
-        `✅ ${prospeccion.nuevos} prospectos nuevos (fuente: ${prospeccion.fuente}, ${prospeccion.hispanohablantes} hispanohablantes, ${prospeccion.descartadosPorValidacion} descartados por validación).`
+        `✅ ${prospeccion.nuevos} prospectos nuevos (fuente: ${prospeccion.fuente}, ${prospeccion.deEspana} de España, ${prospeccion.descartadosPorValidacion} descartados por validación).`
       );
     }
   } catch (err) {

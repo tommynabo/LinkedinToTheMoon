@@ -14,20 +14,20 @@
  * de búsqueda por defecto usa las mismas palabras clave del ICP (ver SCORE_KEYWORDS en
  * config.ts).
  *
- * El ICP quiere mayoría hispanohablante (ver RATIO_MINIMO_HISPANOHABLANTE en config.ts), así
- * que por defecto se lanzan DOS búsquedas: una grande sesgada a países hispanohablantes
- * (UBICACIONES_HISPANOHABLANTES) y otra pequeña sin restricción de ubicación para variedad.
- * Si defines APIFY_LOCATIONS (separadas por coma) se respeta esa lista tal cual y se hace
- * una única búsqueda con ella, sin la búsqueda global adicional. El filtrado/priorización
- * final por idioma real (incluida la exclusión de portugués/brasileño) pasa en
- * engines/prospecting.ts vía idioma.ts.
+ * El ICP quiere un mínimo de MINIMO_ESPANA_POR_DIA prospectos de España específicamente
+ * (ver config.ts) de los PROSPECTOS_POR_DIA totales; el resto puede ser de cualquier otro
+ * sitio. Por defecto se lanzan DOS búsquedas: una sesgada a España (UBICACION_PRIORITARIA)
+ * y otra sin restricción de ubicación para el resto de huecos. Si defines APIFY_LOCATIONS
+ * (separadas por coma) se usa esa ubicación en vez de España para la búsqueda sesgada. El
+ * filtrado/priorización final por país real (incluida la exclusión de portugués/brasileño)
+ * pasa en engines/prospecting.ts vía idioma.ts (esDeEspana/detectarIdiomaAprox).
  *
  * El actor de búsqueda de perfiles NO devuelve el contenido de sus posts recientes, así que
  * para el último post usamos un segundo actor, `harvestapi/linkedin-profile-posts`
  * (buscarUltimosPosts) — barato (~$0.002/post) y solo se llama para los prospectos que ya
  * pasaron el filtro/dedupe, nunca para todo el resultado bruto de la búsqueda.
  */
-import { PROSPECTOS_POR_DIA, SCORE_KEYWORDS, UBICACIONES_HISPANOHABLANTES } from './config';
+import { PROSPECTOS_POR_DIA, SCORE_KEYWORDS, UBICACION_PRIORITARIA } from './config';
 import { normalizeLinkedInUrl } from './validation';
 import type { ProspectoCrudo } from './types';
 
@@ -107,28 +107,28 @@ export async function buscarProspectosConApify(): Promise<ProspectoCrudo[]> {
     return deduplicarPorUrl(items);
   }
 
-  // Pool grande sesgado a países hispanohablantes + pool pequeño sin restricción de
-  // ubicación (variedad ~25%), en paralelo. El resultado combinado se filtra/prioriza por
-  // idioma real en engines/prospecting.ts.
-  const poolHispano = Math.max(PROSPECTOS_POR_DIA * 3, 60);
-  const poolGlobal = PROSPECTOS_POR_DIA;
+  // Pool grande sesgado a España (mínimo MINIMO_ESPANA_POR_DIA en config.ts) + pool pequeño
+  // sin restricción de ubicación para el resto de huecos, en paralelo. El resultado
+  // combinado se filtra/prioriza por país real en engines/prospecting.ts.
+  const poolEspana = Math.max(PROSPECTOS_POR_DIA * 3, 60);
+  const poolResto = PROSPECTOS_POR_DIA;
 
-  const [itemsHispano, itemsGlobal] = await Promise.all([
-    ejecutarActorSync(actorId, token, { ...base(poolHispano), locations: UBICACIONES_HISPANOHABLANTES }),
-    ejecutarActorSync(actorId, token, base(poolGlobal)),
+  const [itemsEspana, itemsResto] = await Promise.all([
+    ejecutarActorSync(actorId, token, { ...base(poolEspana), locations: [UBICACION_PRIORITARIA] }),
+    ejecutarActorSync(actorId, token, base(poolResto)),
   ]);
 
-  return deduplicarPorUrl([...itemsHispano, ...itemsGlobal]);
+  return deduplicarPorUrl([...itemsEspana, ...itemsResto]);
 }
 
 /**
  * `memo23/linkedin-people-search` no acepta un array de ubicaciones (solo un `location`
- * string) ni distingue "hispano" de "global" por país, así que replicamos el mismo sesgo
- * ~75/25 usando el IDIOMA de las keywords en vez de la ubicación: un grupo de búsquedas
- * con keywords en español (que naturalmente devuelve sobre todo hispanohablantes/
- * lusófonos, filtrados después por idioma real en prospecting.ts) y otro grupo con
- * keywords en inglés para variedad global. Si el usuario definió APIFY_LOCATIONS se usa
- * solo la primera ubicación de la lista como filtro adicional (el actor solo admite una).
+ * string), así que hacemos DOS grupos de búsquedas por separado: uno con `location` fijado
+ * a España (para garantizar MINIMO_ESPANA_POR_DIA candidatos reales de España, ver
+ * config.ts y prospecting.ts) y otro sin restricción de ubicación para el resto de huecos
+ * (pueden ser de cualquier otro país). Si el usuario definió APIFY_LOCATIONS se usa solo la
+ * primera ubicación de la lista en vez de España para el grupo sesgado (el actor solo
+ * admite una).
  *
  * IMPORTANTE (verificado empíricamente): este actor lanza una búsqueda tipo
  * Google/Bing por debajo, y una única query con muchos términos unidos por "OR" se queda
@@ -142,33 +142,33 @@ async function buscarConMemo23(
   token: string,
   locationsOverride: string[]
 ): Promise<ProspectoCrudo[]> {
-  const keywordsHispano = process.env.APIFY_SEARCH_QUERY
+  const keywordsPrincipales = process.env.APIFY_SEARCH_QUERY
     ? process.env.APIFY_SEARCH_QUERY.split(',').map((k) => k.trim()).filter(Boolean)
     : SCORE_KEYWORDS;
-  const keywordsGlobal = process.env.APIFY_SEARCH_QUERY_GLOBAL
+  const keywordsResto = process.env.APIFY_SEARCH_QUERY_GLOBAL
     ? process.env.APIFY_SEARCH_QUERY_GLOBAL.split(',').map((k) => k.trim()).filter(Boolean)
     : ['coach', 'consultant', 'mentor', 'founder'];
-  const location = locationsOverride[0];
+  const ubicacionEspana = locationsOverride[0] || UBICACION_PRIORITARIA;
 
-  const [resultadosHispano, resultadosGlobal] = await Promise.all([
+  const [resultadosEspana, resultadosResto] = await Promise.all([
     Promise.all(
-      keywordsHispano.map((keywords) =>
+      keywordsPrincipales.map((keywords) =>
         ejecutarActorSync(actorId, token, {
           mode: 'public',
           keywords,
+          location: ubicacionEspana,
           maxResults: 20,
-          ...(location ? { location } : {}),
         })
       )
     ),
     Promise.all(
-      keywordsGlobal.map((keywords) =>
+      [...keywordsPrincipales, ...keywordsResto].map((keywords) =>
         ejecutarActorSync(actorId, token, { mode: 'public', keywords, maxResults: 10 })
       )
     ),
   ]);
 
-  return deduplicarPorUrl([...resultadosHispano.flat(), ...resultadosGlobal.flat()]);
+  return deduplicarPorUrl([...resultadosEspana.flat(), ...resultadosResto.flat()]);
 }
 
 /**
