@@ -2,18 +2,11 @@ import { getProspectos } from '@/lib/queries';
 import { archivarEnviadosAction, deleteProspectoAction, updateProspectoEstado } from '@/lib/actions';
 import { CopyButton } from './CopyButton';
 import { DeleteButton } from './DeleteButton';
+import { EstadoSelect } from './EstadoSelect';
 
 export const dynamic = 'force-dynamic';
 
 const ESTADOS = ['Pendiente', 'Comentado', 'Enviado', 'Descartado'] as const;
-
-function pillClass(estado: string): string {
-  const key = estado.toLowerCase();
-  if (key === 'enviado') return 'pill enviado';
-  if (key === 'descartado') return 'pill descartado';
-  if (key === 'comentado') return 'pill comentado';
-  return 'pill pendiente';
-}
 
 export default async function ProspectosPage({
   searchParams,
@@ -63,7 +56,10 @@ export default async function ProspectosPage({
             <div className="prospecto-header">
               <div>
                 <h3>{p.nombre}</h3>
-                <span className={pillClass(p.estado)}>{p.estado}</span>
+                <form action={updateProspectoEstado} className="inline">
+                  <input type="hidden" name="id" value={p.id} />
+                  <EstadoSelect defaultValue={p.estado} />
+                </form>
               </div>
               <strong>Score {p.score}</strong>
             </div>
@@ -111,17 +107,6 @@ export default async function ProspectosPage({
             )}
 
             <div className="prospecto-actions">
-              <form action={updateProspectoEstado} className="inline">
-                <input type="hidden" name="id" value={p.id} />
-                <select name="estado" defaultValue={p.estado}>
-                  {ESTADOS.map((e) => (
-                    <option key={e} value={e}>
-                      {e}
-                    </option>
-                  ))}
-                </select>
-                <button type="submit">Guardar</button>
-              </form>
               <form action={deleteProspectoAction}>
                 <input type="hidden" name="id" value={p.id} />
                 <DeleteButton />

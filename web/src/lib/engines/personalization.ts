@@ -79,6 +79,16 @@ su cargo, su post o su bio). Responde ÍNTEGRAMENTE en ese mismo idioma (puede s
 inglés o cualquier otro) — nunca traduzcas ni cambies de idioma.
 `.trim();
 
+// Excepción SOLO para el comentario de post (no para el mensaje de conexión): si el idioma
+// detectado es francés, italiano o de un país escandinavo, se escribe en inglés en vez de en
+// ese idioma — pedido explícito para evitar comentarios en idiomas "raros" para el resto de
+// gente que lea el post.
+const EXCEPCION_IDIOMA_COMENTARIO = `
+Excepción importante: si el idioma detectado es francés, italiano, sueco, noruego, danés,
+finlandés o islandés, escribe el comentario en INGLÉS en vez de en ese idioma (el resto de
+idiomas, incluido el español, siguen la regla normal de arriba).
+`.trim();
+
 const INSTRUCCION_TONO = `
 Tono: juvenil, cercano y espontáneo, como si lo escribieras rápido desde el móvil sin pulirlo
 demasiado. Mete muletillas y palabras coloquiales de forma natural — en español algo tipo
@@ -91,6 +101,7 @@ suene a persona real escribiendo rápido, no a plantilla ni a IA.
 export async function generarComentarioPost(nombre: string, cargo: string, ultimoPost: string): Promise<string> {
   const prompt = `
 ${INSTRUCCION_IDIOMA}
+${EXCEPCION_IDIOMA_COMENTARIO}
 ${INSTRUCCION_TONO}
 
 Este es el último post de LinkedIn de ${nombre} (${cargo}):
