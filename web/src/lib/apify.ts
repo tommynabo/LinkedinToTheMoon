@@ -1,12 +1,18 @@
 /**
  * apify.ts
- * Automatiza la búsqueda de prospectos vía un actor de Apify. Pensado por defecto para
- * `harvestapi/linkedin-profile-search` (LinkedIn Profile Search Scraper, sin cookies,
- * https://apify.com/harvestapi/linkedin-profile-search) — pon ese valor en APIFY_ACTOR_ID.
- * El esquema de salida depende del actor concreto que uses, así que normalizarItem() acepta
- * varios nombres de campo habituales (incluidos los de harvestapi); ajústalo si tu actor
- * devuelve nombres distintos. El input de búsqueda por defecto usa las mismas palabras clave
- * del ICP (ver SCORE_KEYWORDS en config.ts).
+ * Automatiza la búsqueda de prospectos vía un actor de Apify.
+ *
+ * Actor por defecto recomendado: `memo23/linkedin-people-search` (LinkedIn People Search
+ * Scraper, sin cookies, https://apify.com/memo23/linkedin-people-search) — pago por evento
+ * (~$0.004-0.005/perfil), SIN límite artificial de "runs gratis" para cuentas free (a
+ * diferencia de harvestapi/linkedin-profile-search, cuyo propio autor bloquea cuentas no
+ * de pago tras 10 runs). También se soporta `harvestapi/linkedin-profile-search` (input
+ * `profileScraperMode`/`searchQuery`/`locations[]`) por compatibilidad retroactiva.
+ * El esquema de entrada/salida depende del actor concreto que uses: esActorMemo23() decide
+ * qué forma de input construir, y normalizarItem() acepta varios nombres de campo habituales
+ * (de ambos actores) al normalizar la salida; ajústalo si usas un actor distinto. El input
+ * de búsqueda por defecto usa las mismas palabras clave del ICP (ver SCORE_KEYWORDS en
+ * config.ts).
  *
  * El ICP quiere mayoría hispanohablante (ver RATIO_MINIMO_HISPANOHABLANTE en config.ts), así
  * que por defecto se lanzan DOS búsquedas: una grande sesgada a países hispanohablantes
@@ -27,6 +33,11 @@ import type { ProspectoCrudo } from './types';
 
 export function tieneApifyConfigurado(): boolean {
   return Boolean(process.env.APIFY_API_TOKEN && process.env.APIFY_ACTOR_ID);
+}
+
+/** `memo23/linkedin-people-search` usa un input distinto (mode/keywords/location single-string/maxResults). */
+function esActorMemo23(actorId: string): boolean {
+  return actorId.toLowerCase().includes('memo23');
 }
 
 async function ejecutarActorSync(
@@ -76,6 +87,10 @@ export async function buscarProspectosConApify(): Promise<ProspectoCrudo[]> {
     .map((l) => l.trim())
     .filter(Boolean);
 
+  if (esActorMemo23(actorId)) {
+    return buscarConMemo23(actorId, token, locationsOverride);
+  }
+
   const base = (maxItems: number) => ({
     profileScraperMode: 'Full',
     searchQuery,
@@ -104,6 +119,56 @@ export async function buscarProspectosConApify(): Promise<ProspectoCrudo[]> {
   ]);
 
   return deduplicarPorUrl([...itemsHispano, ...itemsGlobal]);
+}
+
+/**
+ * `memo23/linkedin-people-search` no acepta un array de ubicaciones (solo un `location`
+ * string) ni distingue "hispano" de "global" por país, así que replicamos el mismo sesgo
+ * ~75/25 usando el IDIOMA de las keywords en vez de la ubicación: un grupo de búsquedas
+ * con keywords en español (que naturalmente devuelve sobre todo hispanohablantes/
+ * lusófonos, filtrados después por idioma real en prospecting.ts) y otro grupo con
+ * keywords en inglés para variedad global. Si el usuario definió APIFY_LOCATIONS se usa
+ * solo la primera ubicación de la lista como filtro adicional (el actor solo admite una).
+ *
+ * IMPORTANTE (verificado empíricamente): este actor lanza una búsqueda tipo
+ * Google/Bing por debajo, y una única query con muchos términos unidos por "OR" se queda
+ * corta (~15-20 resultados únicos aunque pidas maxResults mucho más alto), porque el motor
+ * de búsqueda público solo profundiza tanto en una query compuesta. Lanzar UNA búsqueda POR
+ * KEYWORD por separado (en paralelo) da bastantes más resultados únicos en total para el
+ * mismo coste aproximado. Ver /memories/repo para el detalle de esta medición.
+ */
+async function buscarConMemo23(
+  actorId: string,
+  token: string,
+  locationsOverride: string[]
+): Promise<ProspectoCrudo[]> {
+  const keywordsHispano = process.env.APIFY_SEARCH_QUERY
+    ? process.env.APIFY_SEARCH_QUERY.split(',').map((k) => k.trim()).filter(Boolean)
+    : SCORE_KEYWORDS;
+  const keywordsGlobal = process.env.APIFY_SEARCH_QUERY_GLOBAL
+    ? process.env.APIFY_SEARCH_QUERY_GLOBAL.split(',').map((k) => k.trim()).filter(Boolean)
+    : ['coach', 'consultant', 'mentor', 'founder'];
+  const location = locationsOverride[0];
+
+  const [resultadosHispano, resultadosGlobal] = await Promise.all([
+    Promise.all(
+      keywordsHispano.map((keywords) =>
+        ejecutarActorSync(actorId, token, {
+          mode: 'public',
+          keywords,
+          maxResults: 20,
+          ...(location ? { location } : {}),
+        })
+      )
+    ),
+    Promise.all(
+      keywordsGlobal.map((keywords) =>
+        ejecutarActorSync(actorId, token, { mode: 'public', keywords, maxResults: 10 })
+      )
+    ),
+  ]);
+
+  return deduplicarPorUrl([...resultadosHispano.flat(), ...resultadosGlobal.flat()]);
 }
 
 /**
@@ -149,9 +214,9 @@ function normalizarItem(item: Record<string, any>): ProspectoCrudo {
   return {
     nombre: item.fullName || nombreCompleto || item.name || item.nombre || '',
     url: item.linkedinUrl || item.profileUrl || item.url || '',
-    cargo: item.headline || item.jobTitle || item.cargo || '',
-    empresa: empresaActual || item.companyName || item.company || item.empresa || '',
-    bio: item.about || item.bio || item.headline || '',
+    cargo: item.headline || item.jobTitle || item.summary || item.cargo || '',
+    empresa: empresaActual || item.currentCompany || item.companyName || item.company || item.empresa || '',
+    bio: item.about || item.bio || item.headline || item.summary || '',
     ultimoPostTema: item.lastPostTopic || item.lastPostText || '',
     ultimoPostFecha: item.lastPostDate || null,
     seguidores: typeof seguidores === 'number' ? seguidores : null,
