@@ -16,7 +16,7 @@ export function normalizeLinkedInUrl(url: string): string {
     .replace(/[?#].*$/, '')
     .replace(/\/+$/, '')
     .replace(/^https?:\/\//, '')
-    .replace(/^www\./, '');
+    .replace(/^([a-z]{2}|www)\./, '');
 }
 
 export function esUrlLinkedInValida(url: string): boolean {
