@@ -54,30 +54,45 @@ export async function buscarProspectosDeHoy(): Promise<ResultadoProspeccion> {
     // Exclusión total de portugués/brasileño, pedido explícito del ICP (no es solo cuota).
     .filter((c) => c.idioma !== 'pt');
 
-  // El ICP quiere un mínimo de MINIMO_ESPANA_POR_DIA (de PROSPECTOS_POR_DIA) que sean de
-  // España específicamente: se priorizan los detectados como "de España" hasta cubrir esa
-  // cuota, y el resto de huecos se rellena con los mejores candidatos restantes (de
-  // cualquier otro sitio, sin restricción adicional).
-  const deEspana = candidatosClasificados.filter((c) => c.esEspana).sort((a, b) => b.score - a.score);
-  const resto = candidatosClasificados.filter((c) => !c.esEspana).sort((a, b) => b.score - a.score);
+  // Separar por ubicación y pre-seleccionar un grupo más amplio (top ~70) para buscar posts
+  const deEspanaAll = candidatosClasificados.filter((c) => c.esEspana).sort((a, b) => b.score - a.score);
+  const restoAll = candidatosClasificados.filter((c) => !c.esEspana).sort((a, b) => b.score - a.score);
 
-  const elegidosEspana = deEspana.slice(0, MINIMO_ESPANA_POR_DIA);
-  const huecosRestantes = PROSPECTOS_POR_DIA - elegidosEspana.length;
-  const relleno = [...deEspana.slice(elegidosEspana.length), ...resto].slice(0, huecosRestantes);
+  const poolEspana = deEspanaAll.slice(0, Math.max(MINIMO_ESPANA_POR_DIA * 2, 30));
+  const poolResto = restoAll.slice(0, Math.max(PROSPECTOS_POR_DIA * 2, 40));
+  const preSeleccionados = [...poolEspana, ...poolResto];
 
-  const nuevos = [...elegidosEspana, ...relleno].sort((a, b) => b.score - a.score);
-  const totalDeEspana = nuevos.filter((c) => c.esEspana).length;
-
-  // El buscador de perfiles no trae el contenido de sus posts recientes; lo pedimos aparte
-  // (segundo actor, barato) solo para los que ya pasaron el filtro, y solo si venían de Apify
-  // (el import manual ya puede traer "ultimo_post" pegado a mano en la columna correspondiente).
+  // Buscar posts ANTES de hacer el corte final para priorizar a los que sí tengan post
   let ultimosPosts = new Map<string, { texto: string; url: string }>();
   if (fuente === 'Apify') {
-    const urlsSinPost = nuevos.filter(({ prospecto }) => !prospecto.ultimoPostTema).map(({ prospecto }) => prospecto.url);
+    const urlsSinPost = preSeleccionados
+      .filter((c) => !c.prospecto.ultimoPostTema)
+      .map((c) => c.prospecto.url);
     if (urlsSinPost.length > 0) {
       ultimosPosts = await buscarUltimosPosts(urlsSinPost);
     }
   }
+
+  // Dar un bonus masivo a los que tienen post
+  for (const c of preSeleccionados) {
+    const urlNorm = normalizeLinkedInUrl(c.prospecto.url);
+    const tienePost = Boolean(c.prospecto.ultimoPostTema || ultimosPosts.has(urlNorm));
+    if (tienePost) {
+      c.score += 1000;
+    }
+  }
+
+  // Reordenar con el nuevo score
+  const deEspanaConPosts = preSeleccionados.filter((c) => c.esEspana).sort((a, b) => b.score - a.score);
+  const restoConPosts = preSeleccionados.filter((c) => !c.esEspana).sort((a, b) => b.score - a.score);
+
+  // Hacer el corte final de PROSPECTOS_POR_DIA
+  const elegidosEspana = deEspanaConPosts.slice(0, MINIMO_ESPANA_POR_DIA);
+  const huecosRestantes = PROSPECTOS_POR_DIA - elegidosEspana.length;
+  const relleno = [...deEspanaConPosts.slice(elegidosEspana.length), ...restoConPosts].slice(0, huecosRestantes);
+
+  const nuevos = [...elegidosEspana, ...relleno].sort((a, b) => b.score - a.score);
+  const totalDeEspana = nuevos.filter((c) => c.esEspana).length;
 
   for (const { prospecto, score } of nuevos) {
     const postEncontrado = ultimosPosts.get(normalizeLinkedInUrl(prospecto.url));
