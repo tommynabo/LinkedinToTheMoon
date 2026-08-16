@@ -80,6 +80,11 @@ function buscarProspectosDeHoyCore(): ResultadoProspeccion {
       'Link del audio': '',
       Estado: 'Pendiente',
     });
+
+    appendRowObject(SHEETS.HISTORICO_URLS, ['URL perfil', 'Fecha'], {
+      'URL perfil': normalizeLinkedInUrl(prospecto.url),
+      Fecha: todayISO(),
+    });
   }
 
   if (fuente === 'Prospectos_Import') {

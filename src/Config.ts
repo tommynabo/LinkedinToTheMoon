@@ -11,6 +11,7 @@ const SHEETS = {
   PROSPECTOS_IMPORT: 'Prospectos_Import',
   CRM: 'CRM',
   IDEAS: 'Ideas',
+  HISTORICO_URLS: 'Historico_URLs',
 };
 
 const PROPERTY_KEYS = {
@@ -98,5 +99,7 @@ const SCORE_RULES = {
 
 const SCORE_KEYWORDS = ['coach', 'consultor', 'consultora', 'mentor', 'mentora', 'fundador de', 'fundadora de'];
 const PROGRAMA_KEYWORDS = ['curso', 'mentoría', 'mentoria', 'programa', 'membresía', 'membresia', 'formación', 'formacion'];
+
+const BLACKLIST_KEYWORDS = ['futbol', 'fútbol', 'soccer', 'deportivo', 'deportiva', 'entrenador personal', 'personal trainer'];
 
 const PROSPECTOS_POR_DIA = 25;

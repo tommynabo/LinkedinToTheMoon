@@ -54,7 +54,7 @@ function normalizeLinkedInUrl(url: string): string {
 /** Construye el set de URLs ya conocidas (CRM + Prospectos actuales) para deduplicar. */
 function getUrlsConocidas(): Set<string> {
   const urls = new Set<string>();
-  for (const nombreHoja of [SHEETS.CRM, SHEETS.PROSPECTOS]) {
+  for (const nombreHoja of [SHEETS.CRM, SHEETS.PROSPECTOS, SHEETS.HISTORICO_URLS]) {
     const sheet = getSpreadsheet().getSheetByName(nombreHoja);
     if (!sheet) continue;
     const values = sheet.getDataRange().getValues();
