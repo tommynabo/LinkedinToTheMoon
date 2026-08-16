@@ -33,8 +33,14 @@ async function main() {
   // We can just call the Next.js API endpoint or the function directly
   const { buscarProspectosDeHoy } = await import('../src/lib/engines/prospecting');
   const result = await buscarProspectosDeHoy();
-  
   console.log('New search result:', result);
+
+  if (result.nuevos > 0) {
+    console.log('Running personalization engine for the new prospects...');
+    const { personalizarMensajesYAudios } = await import('../src/lib/engines/personalization');
+    const persResult = await personalizarMensajesYAudios();
+    console.log('Personalization result:', persResult);
+  }
 }
 
 main().catch((err) => {
