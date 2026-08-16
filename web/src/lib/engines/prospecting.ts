@@ -83,10 +83,18 @@ export async function buscarProspectosDeHoy(): Promise<ResultadoProspeccion> {
     const postEncontrado = ultimosPosts.get(normalizeLinkedInUrl(prospecto.url));
     const ultimoPostTexto = prospecto.ultimoPostTema || postEncontrado?.texto || null;
     const ultimoPostUrl = postEncontrado?.url || null;
+    const urlNormalizada = normalizeLinkedInUrl(prospecto.url);
+
     await sql`
       INSERT INTO prospectos (fecha_extraccion, nombre, url_perfil, cargo, score, dato_personalizado, ultimo_post_texto, ultimo_post_url, estado)
-      VALUES (CURRENT_DATE, ${prospecto.nombre}, ${prospecto.url}, ${prospecto.cargo}, ${score},
+      VALUES (CURRENT_DATE, ${prospecto.nombre}, ${urlNormalizada}, ${prospecto.cargo}, ${score},
               ${prospecto.bio || null}, ${ultimoPostTexto}, ${ultimoPostUrl}, 'Pendiente')
+    `;
+
+    await sql`
+      INSERT INTO historico_urls (url_perfil)
+      VALUES (${urlNormalizada})
+      ON CONFLICT (url_perfil) DO NOTHING
     `;
   }
 

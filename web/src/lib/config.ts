@@ -92,3 +92,13 @@ export const PROGRAMA_KEYWORDS = [
   'formación',
   'formacion',
 ];
+
+export const BLACKLIST_KEYWORDS = [
+  'futbol',
+  'fútbol',
+  'soccer',
+  'deportivo',
+  'deportiva',
+  'entrenador personal',
+  'personal trainer',
+];

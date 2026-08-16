@@ -40,6 +40,8 @@ export async function getUrlsConocidas(): Promise<Set<string>> {
     SELECT url_perfil FROM prospectos
     UNION
     SELECT url_perfil FROM crm
+    UNION
+    SELECT url_perfil FROM historico_urls
   `;
   return new Set(rows.map((r) => normalizeLinkedInUrl(r.url_perfil)));
 }

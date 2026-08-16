@@ -110,4 +110,12 @@ async function crearTablas(): Promise<void> {
       hubo_error BOOLEAN NOT NULL DEFAULT false
     );
   `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS historico_urls (
+      id SERIAL PRIMARY KEY,
+      url_perfil TEXT NOT NULL UNIQUE,
+      fecha_agregado TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `;
 }

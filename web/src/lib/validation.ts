@@ -5,7 +5,7 @@
  * perfiles de forma automática es justo el tipo de actividad que hace saltar las alarmas
  * anti-bot de LinkedIn), así que esto valida forma/completitud, no "el perfil existe".
  */
-import { LINKEDIN_URL_REGEX } from './config';
+import { LINKEDIN_URL_REGEX, BLACKLIST_KEYWORDS } from './config';
 import type { ProspectoCrudo } from './types';
 
 export function normalizeLinkedInUrl(url: string): string {
@@ -24,5 +24,14 @@ export function esUrlLinkedInValida(url: string): boolean {
 }
 
 export function esProspectoValido(p: ProspectoCrudo): boolean {
-  return Boolean(p.nombre?.trim() && p.cargo?.trim() && esUrlLinkedInValida(p.url));
+  if (!p.nombre?.trim() || !p.cargo?.trim() || !esUrlLinkedInValida(p.url)) {
+    return false;
+  }
+
+  const textToSearch = `${p.cargo} ${p.bio || ''}`.toLowerCase();
+  if (BLACKLIST_KEYWORDS.some((kw) => textToSearch.includes(kw))) {
+    return false;
+  }
+
+  return true;
 }
