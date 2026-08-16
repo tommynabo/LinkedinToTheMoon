@@ -68,8 +68,21 @@ export async function buscarProspectosDeHoy(): Promise<ResultadoProspeccion> {
     const urlsSinPost = preSeleccionados
       .filter((c) => !c.prospecto.ultimoPostTema)
       .map((c) => c.prospecto.url);
+
     if (urlsSinPost.length > 0) {
-      ultimosPosts = await buscarUltimosPosts(urlsSinPost);
+      // Chunk en lotes de 15 para evitar el timeout de 60s de Apify run-sync
+      const chunkSize = 15;
+      const chunks = [];
+      for (let i = 0; i < urlsSinPost.length; i += chunkSize) {
+        chunks.push(urlsSinPost.slice(i, i + chunkSize));
+      }
+
+      const results = await Promise.all(chunks.map((chunk) => buscarUltimosPosts(chunk)));
+      for (const map of results) {
+        for (const [key, val] of map.entries()) {
+          ultimosPosts.set(key, val);
+        }
+      }
     }
   }
 
@@ -102,7 +115,7 @@ export async function buscarProspectosDeHoy(): Promise<ResultadoProspeccion> {
 
     await sql`
       INSERT INTO prospectos (fecha_extraccion, nombre, url_perfil, cargo, score, dato_personalizado, ultimo_post_texto, ultimo_post_url, estado)
-      VALUES (CURRENT_DATE, ${prospecto.nombre}, ${urlNormalizada}, ${prospecto.cargo}, ${score},
+      VALUES (CURRENT_DATE, ${prospecto.nombre}, ${prospecto.url}, ${prospecto.cargo}, ${score},
               ${prospecto.bio || null}, ${ultimoPostTexto}, ${ultimoPostUrl}, 'Pendiente')
     `;
 
