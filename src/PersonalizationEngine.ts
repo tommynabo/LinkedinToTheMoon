@@ -83,10 +83,15 @@ Debes seguir esta fórmula exacta (máximo 3-4 frases):
 
 Tono: directo, humano, como si un ingeniero/arquitecto de datos le hablara a un consultor o dueño de agencia. Cero "espero que estés muy bien".
 
+REGLA ESTRICTA: No incluyas NINGÚN guion (-) ni raya (—) en el mensaje. Está prohibido usar el carácter guion.
+
 Responde ÚNICAMENTE con el texto del mensaje, sin comillas ni explicaciones adicionales.
 `.trim();
 
-  return callClaude(prompt, 300).trim();
+  let mensaje = callClaude(prompt, 300).trim();
+  // Limpieza agresiva post-generación para asegurar que no quede ningún tipo de guion
+  mensaje = mensaje.replace(/[-—_]/g, ' ').replace(/\s+/g, ' ').trim();
+  return mensaje;
 }
 
 /**
