@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { sql } from '../../lib/db';
+import type { ProspectoRow } from '../../lib/types';
 
 // Initialize the Anthropic client
 const anthropic = new Anthropic({
@@ -9,11 +11,11 @@ const anthropic = new Anthropic({
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { profile, conversation } = body;
+    const { profileUrl, conversation } = body;
 
-    if (!profile || !conversation) {
+    if (!profileUrl || !conversation) {
       return NextResponse.json(
-        { error: 'Profile and conversation data are required' },
+        { error: 'Profile URL and conversation data are required' },
         { status: 400 }
       );
     }
@@ -24,6 +26,28 @@ export async function POST(req: Request) {
         { status: 500 }
       );
     }
+
+    // Lookup the profile in the database
+    const { rows } = await sql<ProspectoRow>`
+      SELECT * FROM prospectos WHERE url_perfil = ${profileUrl} LIMIT 1
+    `;
+
+    if (rows.length === 0) {
+      return NextResponse.json(
+        { error: 'No se encontró el perfil en la base de datos de prospectos. Verifica la URL.' },
+        { status: 404 }
+      );
+    }
+
+    const prospecto = rows[0];
+    const profileContext = `
+Nombre: ${prospecto.nombre}
+Cargo: ${prospecto.cargo || 'N/D'}
+Dato Personalizado (Extraído): ${prospecto.dato_personalizado || 'N/D'}
+Último post: ${prospecto.ultimo_post_texto || 'N/D'}
+Comentario Generado (Contexto): ${prospecto.comentario_post || 'N/D'}
+Mensaje de Conexión (Contexto): ${prospecto.texto_mensaje || 'N/D'}
+    `.trim();
 
     const systemPrompt = `Eres un Jefe de Ventas Elite de una agencia B2B altamente exitosa.
 Tu objetivo es analizar el perfil de LinkedIn de un prospecto y el historial de una conversación, y redactar la respuesta PERFECTA para continuar la conversación, generar interés, derribar objeciones y guiar al prospecto hacia una llamada de ventas o el siguiente paso en el embudo.
@@ -42,7 +66,7 @@ Reglas para tu respuesta:
       messages: [
         {
           role: 'user',
-          content: `Información del Perfil del Prospecto:\n${profile}\n\nHistorial de Conversación:\n${conversation}\n\nPor favor, redacta la respuesta de ventas ideal.`,
+          content: `Información del Perfil del Prospecto:\n${profileContext}\n\nHistorial de Conversación:\n${conversation}\n\nPor favor, redacta la respuesta de ventas ideal.`,
         },
       ],
     });
