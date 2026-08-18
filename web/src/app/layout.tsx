@@ -25,6 +25,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             <a href="/crm">CRM</a>
             <a href="/ideas">Ideas</a>
             <a href="/import">Importar</a>
+            <a href="/response-maker">Response Maker</a>
             <a href="/ajustes">Ajustes</a>
           </nav>
         </header>
