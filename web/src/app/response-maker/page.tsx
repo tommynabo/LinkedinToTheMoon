@@ -4,7 +4,7 @@ import { useState } from 'react';
 import styles from './response-maker.module.css';
 
 export default function ResponseMakerPage() {
-  const [profileUrl, setProfileUrl] = useState('');
+  const [profile, setProfile] = useState('');
   const [conversation, setConversation] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState('');
@@ -12,8 +12,8 @@ export default function ResponseMakerPage() {
   const [copied, setCopied] = useState(false);
 
   const handleGenerate = async () => {
-    if (!profileUrl.trim() || !conversation.trim()) {
-      setError('Por favor completa tanto la URL del perfil como la conversación.');
+    if (!profile.trim() || !conversation.trim()) {
+      setError('Por favor completa tanto la información del perfil como la conversación.');
       return;
     }
 
@@ -26,7 +26,7 @@ export default function ResponseMakerPage() {
       const response = await fetch('/api/response-maker', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ profileUrl, conversation }),
+        body: JSON.stringify({ profile, conversation }),
       });
 
       if (!response.ok) {
@@ -62,13 +62,12 @@ export default function ResponseMakerPage() {
 
       <div className={styles.glassCard}>
         <div className={styles.inputGroup}>
-          <label className={styles.label}>1. URL del Perfil (LinkedIn)</label>
-          <input
-            type="url"
-            className={styles.input}
-            placeholder="https://www.linkedin.com/in/usuario..."
-            value={profileUrl}
-            onChange={(e) => setProfileUrl(e.target.value)}
+          <label className={styles.label}>1. Información del Perfil (LinkedIn)</label>
+          <textarea
+            className={styles.textarea}
+            placeholder="Pega aquí el acerca de, experiencia, titular, o cualquier contexto relevante del prospecto..."
+            value={profile}
+            onChange={(e) => setProfile(e.target.value)}
           />
         </div>
 
