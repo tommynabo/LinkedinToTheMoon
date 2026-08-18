@@ -38,7 +38,7 @@ Reglas para tu respuesta:
 5. Devuelve ÚNICAMENTE el texto de la respuesta que se debe enviar, sin introducciones ni explicaciones adicionales.`;
 
     const message = await anthropic.messages.create({
-      model: 'claude-3-haiku-20240307',
+      model: 'claude-sonnet-4-5-20250929',
       max_tokens: 1024,
       system: systemPrompt,
       messages: [
