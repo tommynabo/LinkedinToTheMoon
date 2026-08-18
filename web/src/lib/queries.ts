@@ -14,7 +14,7 @@ export async function getPosts(): Promise<PostRow[]> {
 export async function getProspectos(): Promise<ProspectoRow[]> {
   await ensureSchema();
   const { rows } = await sql<ProspectoRow>`
-    SELECT * FROM prospectos ORDER BY score DESC, created_at ASC LIMIT 200
+    SELECT * FROM prospectos ORDER BY created_at ASC LIMIT 500
   `;
   return rows;
 }
