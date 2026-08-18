@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
-import { sql } from '../../lib/db';
-import type { ProspectoRow } from '../../lib/types';
+import { sql } from '../../../lib/db';
+import type { ProspectoRow } from '../../../lib/types';
 
 // Initialize the Anthropic client
 const anthropic = new Anthropic({
