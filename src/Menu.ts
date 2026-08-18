@@ -18,6 +18,7 @@ function onOpen(): void {
         .addItem('2) Generar Post del Día', 'generarPostDelDia')
         .addItem('3) Buscar Prospectos de Hoy', 'buscarProspectosDeHoy')
         .addItem('4) Personalizar Mensajes y Audios', 'personalizarMensajesYAudios')
+        .addItem('5) Ordenar Prospectos (Antiguos Primero)', 'ordenarProspectosCronologicamente')
     )
     .addItem('Mover Enviados/Descartados al CRM', 'moverEnviadosACRM')
     .addItem('📊 Actualizar resumen', 'actualizarResumenPanel')

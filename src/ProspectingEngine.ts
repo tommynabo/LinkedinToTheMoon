@@ -91,7 +91,30 @@ function buscarProspectosDeHoyCore(): ResultadoProspeccion {
     limpiarProspectosImportados();
   }
 
+  // Ordenar para que los más antiguos queden arriba
+  ordenarProspectosCronologicamenteCore();
+
   return { nuevos: nuevos.length, fuente, descartadosPorValidacion };
+}
+
+/**
+ * Función manual expuesta al menú para forzar el orden cronológico
+ * (los prospectos añadidos el día 1 aparecen primero).
+ */
+function ordenarProspectosCronologicamente(): void {
+  ordenarProspectosCronologicamenteCore();
+  SpreadsheetApp.getUi().alert('Prospectos ordenados de más antiguo a más nuevo.');
+}
+
+function ordenarProspectosCronologicamenteCore(): void {
+  const sheet = getSpreadsheet().getSheetByName(SHEETS.PROSPECTOS);
+  if (!sheet) return;
+  const range = sheet.getDataRange();
+  if (range.getNumRows() <= 1) return;
+  
+  // Columna 1 es "Fecha extracción". Orden ascendente (A-Z) para que lo antiguo quede arriba.
+  const dataRange = sheet.getRange(2, 1, range.getNumRows() - 1, range.getNumColumns());
+  dataRange.sort({ column: 1, ascending: true });
 }
 
 /** Lee filas pegadas manualmente (export de Sales Navigator/LinkedIn) desde Prospectos_Import. */
