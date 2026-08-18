@@ -62,29 +62,19 @@ interface ContentPillar {
 
 const CONTENT_PILLARS: ContentPillar[] = [
   {
-    nombre: 'Autoridad / Educativo',
-    objetivo: 'Demostrar que entiendes de IA aplicada a negocios de coaching/consultoría',
-    ejemploAngulo: '3 tareas que tu asistente ya podría no hacer si tuvieras esto',
+    nombre: 'Volumen / Escalabilidad (FlowNext)',
+    objetivo: 'Demostrar que resolver el volumen de prospección es un problema de ingeniería de datos, no de esfuerzo manual',
+    ejemploAngulo: 'Estás pagando 1.500€ al mes a setters para que busquen leads a mano. Ayer conecté un sistema que procesa 1.000 leads diarios en automático.',
   },
   {
-    nombre: 'Caso de cliente / Resultado',
-    objetivo: 'Prueba social concreta',
-    ejemploAngulo: 'Cómo [tipo de cliente] recuperó 8h/semana con un agente de IA',
+    nombre: 'Calidad / Anti-baneos (ApexEngine)',
+    objetivo: 'Enseñar cómo superar los límites de conexión de LinkedIn y priorizar la hiper-personalización',
+    ejemploAngulo: 'LinkedIn solo te deja enviar 25 invitaciones al día sin banearte. Tienes que hacer que cada una cuente usando IA para perfilar psicológicamente al prospecto.',
   },
   {
-    nombre: 'Behind the scenes / Opinión',
-    objetivo: 'Conexión humana, el algoritmo lo premia',
-    ejemploAngulo: 'Lo que nadie te cuenta de meter IA en tu negocio',
-  },
-  {
-    nombre: 'Contrarian / Mito',
-    objetivo: 'Detener el scroll, generar debate',
-    ejemploAngulo: 'La IA no te va a quitar clientes. Esto sí.',
-  },
-  {
-    nombre: 'Storytelling personal',
-    objetivo: 'Humanizar tu marca de agencia',
-    ejemploAngulo: 'El día que un cliente casi se va por esto...',
+    nombre: 'Auditoría / Refinería de Leads',
+    objetivo: 'Posicionarte como consultor técnico mostrando fugas de dinero en las bases de datos de clientes',
+    ejemploAngulo: 'Anoche audité una agencia que envía 2.000 correos semanales sin cerrar. El 82% de su base de datos era basura. El código hace el trabajo sucio.',
   },
 ];
 

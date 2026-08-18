@@ -73,16 +73,57 @@ function personalizarMensajesYAudiosCore(): ResultadoPersonalizacion {
 
 function generarMensajePersonalizado(nombre: string, cargo: string, datoPersonalizado: string): string {
   const prompt = `
-Genera un mensaje de conexión de LinkedIn de máximo 3 frases para ${nombre}, ${cargo}.
-Menciona de forma natural este dato personalizado: "${datoPersonalizado}".
+Genera un mensaje de prospección por LinkedIn para ${nombre}, que es ${cargo}.
+Dato personalizado para usar como gancho: "${datoPersonalizado}".
 
-No vendas nada en este primer mensaje. El objetivo único es que acepte la conexión y sienta
-curiosidad. Cierra con una pregunta abierta y breve.
-Tono: cercano, humano, como si Tomás le escribiera un audio de WhatsApp a un colega, no un
-mensaje de ventas.
+Debes seguir esta fórmula exacta (máximo 3-4 frases):
+1. Lectura fría del dolor: Entra directo mencionando el dato personalizado o un problema típico de su cargo (ej. volumen manual, bases de datos sucias, límites de LinkedIn).
+2. Autoridad seca: Menciona que construyes arquitecturas de datos / refinerías / motores de prospección automatizados. CERO condicionales.
+3. Calidez / CTA: Pregunta abierta y breve que genere curiosidad sobre cómo aplica a su negocio. No vendas el servicio.
+
+Tono: directo, humano, como si un ingeniero/arquitecto de datos le hablara a un consultor o dueño de agencia. Cero "espero que estés muy bien".
 
 Responde ÚNICAMENTE con el texto del mensaje, sin comillas ni explicaciones adicionales.
 `.trim();
 
   return callClaude(prompt, 300).trim();
+}
+
+/**
+ * Borra los mensajes y audios generados previamente para prospectos
+ * que siguen en estado 'Pendiente', y los vuelve a generar con la nueva lógica.
+ */
+function reprocesarMensajesExistentes(): void {
+  const sheet = getSheetOrThrow(SHEETS.PROSPECTOS);
+  const values = sheet.getDataRange().getValues();
+  if (values.length < 2) {
+    SpreadsheetApp.getUi().alert('No hay prospectos en la hoja.');
+    return;
+  }
+
+  const headers = values[0].map((h) => String(h).trim());
+  const idxEstado = findColumnIndex(headers, 'Estado');
+  const idxMensaje = findColumnIndex(headers, 'Texto del mensaje');
+  const idxAudio = findColumnIndex(headers, 'Link del audio');
+
+  let limpiados = 0;
+
+  for (let i = 1; i < values.length; i++) {
+    const estado = String(values[i][idxEstado]).trim().toLowerCase();
+    if (estado === 'pendiente') {
+      const fila = i + 1;
+      sheet.getRange(fila, idxMensaje + 1).setValue('');
+      sheet.getRange(fila, idxAudio + 1).setValue('');
+      limpiados++;
+    }
+  }
+
+  if (limpiados > 0) {
+    const resultado = personalizarMensajesYAudiosCore();
+    SpreadsheetApp.getUi().alert(
+      `${limpiados} prospecto(s) pendiente(s) han sido limpiados y ${resultado.generados} han sido reprocesados con la nueva lógica de lectura fría + autoridad.`
+    );
+  } else {
+    SpreadsheetApp.getUi().alert('No se encontraron prospectos en estado Pendiente para reprocesar.');
+  }
 }

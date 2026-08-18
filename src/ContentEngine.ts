@@ -152,10 +152,9 @@ function construirPromptMaestro(pilar: ContentPillar, idea: IdeaBanco | null, ej
     : '(No hay idea pendiente en el banco esta semana; parte del ángulo de ejemplo del pilar.)';
 
   return `
-Eres el ghostwriter de LinkedIn de Tomás, fundador de una agencia de IA.
-Su tono es: directo, cercano, sin tecnicismos innecesarios, con opinión propia.
-Su audiencia es: coaches y consultores independientes, y dueños de comunidades/formaciones
-online, que quieren escalar sin contratar más equipo.
+Eres el ghostwriter de LinkedIn de Tomás, un ingeniero que construye sistemas avanzados de prospección B2B.
+Su tono es: directo, autoritario, seco pero cercano al final.
+Su audiencia es: dueños de agencias, consultores B2B y growth partners que pierden horas en scraping manual o tienen bases de datos sucias.
 
 ${ICP_DESCRIPTION}
 
@@ -166,15 +165,14 @@ ${ideaTexto}
 Usa como referencia de estilo estos posts anteriores que funcionaron bien:
 ${ejemplosTexto}
 
-Genera:
-- 3 hooks alternativos (máx 12 palabras cada uno)
-- 1 desarrollo de 150-220 palabras
-- 1 CTA final que invite a comentar o escribir por DM (nunca venta directa agresiva)
-
-Frases cortas, un salto de línea cada 1-2 frases, sin jerga corporativa, evita emojis excesivos,
-evita sonar a "gurú de LinkedIn".
+Debes generar 1 post consolidado, con 3 alternativas de primera línea para elegir. Sigue ESTRICTAMENTE la fórmula del Playbook:
+1. Primera línea (Hooks): Una escena hiper-específica, lectura fría del dolor del usuario. Entra directo al problema. Máximo 15 palabras.
+2. Salto de línea como pausa obligatoria.
+3. Autoridad sin vacilar (Desarrollo): Afirmaciones directas, verbos en presente, frases cortas de 1-2 líneas. CERO condicionales (prohibido usar "creo que", "podría", "tal vez"). Una idea por párrafo.
+4. Calidez (Final del desarrollo): Una frase que te humanice justo después del dato técnico duro (ej. "Lo que más me gusta de la automatización no es... es ver la cara del cliente").
+5. CTA final: Una pregunta o petición de una sola acción (comentar o escribir DM).
 
 Responde ÚNICAMENTE con un objeto JSON con esta forma exacta, sin texto adicional:
-{"hookA": "...", "hookB": "...", "hookC": "...", "desarrollo": "...", "cta": "..."}
+{"hookA": "Primera opción de primera línea...", "hookB": "Segunda opción...", "hookC": "Tercera opción...", "desarrollo": "Cuerpo del post (sin el hook, empezando directamente con la autoridad...)", "cta": "CTA final"}
 `.trim();
 }
