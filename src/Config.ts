@@ -38,19 +38,12 @@ const AUTOPILOT_HORA = 8;
 const LINKEDIN_URL_REGEX = /^https?:\/\/([a-z]{2,3}\.)?linkedin\.com\/in\/[a-zA-Z0-9\-_%À-ÿ]+\/?$/i;
 
 // Perfil de cliente ideal (seccion 02 del PDF). Se inyecta en todos los prompts.
-const ICP_DESCRIPTION = `
+export const ICP_DESCRIPTION = `
 Segmentos objetivo (ICP):
-1) Coaches / consultores independientes (venden su conocimiento 1:1 o en grupo: ventas, SEO,
-   marketing, productividad, negocios online, mentoring).
-2) Dueños de comunidades / formaciones (fundadores de comunidades de pago tipo Skool, cursos
-   o membresías online).
-3) Infoproductores / creadores B2B (viven de contenido + producto digital, ya entienden de
-   funnels y necesitan escalar operación).
+1) Empresas B2B de alto nivel, agencias consolidadas y líderes de mercado (ej. consultora #1 de Youtube España, app fitness #1 de España).
+2) Operaciones que necesitan resolver cuellos de botella matemáticos y de volumen en la adquisición de clientes.
 
-Dolor que resuelve la agencia de IA para este ICP: ahorrar tiempo (automatizar atención al
-cliente, onboarding y seguimiento de leads), escalar sin contratar más equipo (agentes que
-cualifican, agendan y hacen soporte), y dar consistencia (sistemas que no dependen de que el
-coach esté encima todo el día).
+Dolor que resuelve: No hacemos "tonterías de automatizaciones" ni "bots de WhatsApp" genéricos. Construimos verdaderas arquitecturas de datos (refinerías) y sistemas de prospección B2B complejos (como FlowNext o ApexEngine) que resuelven los límites de volumen y scraping. Hablamos de sistemas técnicos que extraen, limpian, hiper-personalizan y superan los límites de LinkedIn de forma sistemática para inyectar prospectos hiper-cualificados directamente.
 `.trim();
 
 // Pilares de contenido fijos (seccion 4.1). El motor de contenido rota entre ellos.
@@ -62,20 +55,25 @@ interface ContentPillar {
 
 const CONTENT_PILLARS: ContentPillar[] = [
   {
-    nombre: 'Volumen / Escalabilidad (FlowNext)',
-    objetivo: 'Demostrar que resolver el volumen de prospección es un problema de ingeniería de datos, no de esfuerzo manual',
-    ejemploAngulo: 'Estás pagando 1.500€ al mes a setters para que busquen leads a mano. Ayer conecté un sistema que procesa 1.000 leads diarios en automático.',
+    nombre: 'Sistemas de Prospección / Arquitectura (FlowNext)',
+    objetivo: 'Explicar de forma técnica cómo construyes arquitecturas complejas de prospección B2B que resuelven cuellos de botella de volumen.',
+    ejemploAngulo: 'Sabes exactamente cuántos días de trabajo manual te separan de quebrar. El problema no es el volumen, es la arquitectura de datos que usas para refinar 1000 leads.',
   },
   {
-    nombre: 'Calidad / Anti-baneos (ApexEngine)',
-    objetivo: 'Enseñar cómo superar los límites de conexión de LinkedIn y priorizar la hiper-personalización',
-    ejemploAngulo: 'LinkedIn solo te deja enviar 25 invitaciones al día sin banearte. Tienes que hacer que cada una cuente usando IA para perfilar psicológicamente al prospecto.',
+    nombre: 'Casos de Éxito Top / Resultados',
+    objetivo: 'Demostrar autoridad brutal y seca con clientes reales de élite.',
+    ejemploAngulo: 'Cómo le montamos el sistema de prospección a la app fitness #1 de España para superar sus límites de adquisición.',
   },
   {
-    nombre: 'Auditoría / Refinería de Leads',
-    objetivo: 'Posicionarte como consultor técnico mostrando fugas de dinero en las bases de datos de clientes',
-    ejemploAngulo: 'Anoche audité una agencia que envía 2.000 correos semanales sin cerrar. El 82% de su base de datos era basura. El código hace el trabajo sucio.',
+    nombre: 'Anti-Automatización Básica (Contrarian)',
+    objetivo: 'Atacar las automatizaciones mediocres (bots de WhatsApp, IA básica) y defender los verdaderos sistemas de ingeniería de datos.',
+    ejemploAngulo: 'Todos venden agentes de WhatsApp que no sirven. Nosotros construimos refinerías de datos que saltan las limitaciones y cualifican de verdad.',
   },
+  {
+    nombre: 'Calidad vs Cantidad / Hiper-Personalización (ApexEngine)',
+    objetivo: 'Mostrar cómo los sistemas complejos (lectura fría, inferencia de datos) consiguen tasas de respuesta imposibles para el outreach manual.',
+    ejemploAngulo: 'Mandar 100 DMs genéricos no sirve. Inyectar 25 prospectos diarios con hiper-personalización algorítmica es lo que cierra tratos.',
+  }
 ];
 
 // Reglas de puntuacion de prospectos (seccion 5.2).
