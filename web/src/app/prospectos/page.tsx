@@ -1,4 +1,5 @@
-import { getProspectos } from '@/lib/queries';
+import { getProspectos, getCrm } from '@/lib/queries';
+import type { ProspectoRow } from '@/lib/types';
 import { archivarEnviadosAction, deleteProspectoAction, updateProspectoEstado } from '@/lib/actions';
 import { CopyButton } from './CopyButton';
 import { DeleteButton } from './DeleteButton';
@@ -14,7 +15,26 @@ export default async function ProspectosPage({
   searchParams: Promise<{ estado?: string }>;
 }) {
   const { estado: filtro } = await searchParams;
-  const todos = await getProspectos();
+  const [prospectosActivos, crmRows] = await Promise.all([getProspectos(), getCrm()]);
+  
+  const prospectosCrm: ProspectoRow[] = crmRows.map((c) => ({
+    id: c.id + 10000000,
+    fecha_extraccion: c.fecha_envio || c.created_at,
+    nombre: c.nombre || '',
+    url_perfil: c.url_perfil,
+    cargo: c.cargo || '',
+    score: c.score || 0,
+    dato_personalizado: null,
+    ultimo_post_texto: null,
+    ultimo_post_url: null,
+    comentario_post: null,
+    texto_mensaje: null,
+    link_audio: null,
+    estado: 'Enviado',
+    created_at: c.created_at,
+  }));
+
+  const todos = [...prospectosActivos, ...prospectosCrm];
   const prospectos = filtro ? todos.filter((p) => p.estado === filtro) : todos;
 
   return (
@@ -56,10 +76,16 @@ export default async function ProspectosPage({
             <div className="prospecto-header">
               <div>
                 <h3>{p.nombre}</h3>
-                <form action={updateProspectoEstado} className="inline">
-                  <input type="hidden" name="id" value={p.id} />
-                  <EstadoSelect defaultValue={p.estado} />
-                </form>
+                {p.id >= 10000000 ? (
+                  <div className="inline">
+                    <EstadoSelect defaultValue={p.estado} disabled />
+                  </div>
+                ) : (
+                  <form action={updateProspectoEstado} className="inline">
+                    <input type="hidden" name="id" value={p.id} />
+                    <EstadoSelect defaultValue={p.estado} />
+                  </form>
+                )}
               </div>
               <strong>Score {p.score}</strong>
             </div>
@@ -107,10 +133,12 @@ export default async function ProspectosPage({
             )}
 
             <div className="prospecto-actions">
-              <form action={deleteProspectoAction}>
-                <input type="hidden" name="id" value={p.id} />
-                <DeleteButton />
-              </form>
+              {p.id < 10000000 && (
+                <form action={deleteProspectoAction}>
+                  <input type="hidden" name="id" value={p.id} />
+                  <DeleteButton />
+                </form>
+              )}
             </div>
 
             <div className="prospecto-fecha">{new Date(p.fecha_extraccion).toLocaleDateString('es-ES')}</div>

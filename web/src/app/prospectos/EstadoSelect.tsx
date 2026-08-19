@@ -10,11 +10,12 @@ function pillClass(estado: string): string {
   return 'pill-select pendiente';
 }
 
-export function EstadoSelect({ defaultValue }: { defaultValue: string }) {
+export function EstadoSelect({ defaultValue, disabled }: { defaultValue: string; disabled?: boolean }) {
   return (
     <select
       name="estado"
       defaultValue={defaultValue}
+      disabled={disabled}
       className={pillClass(defaultValue)}
       onChange={(e) => {
         const select = e.currentTarget;
