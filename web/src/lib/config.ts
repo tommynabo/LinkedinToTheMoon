@@ -25,17 +25,10 @@ export const LINKEDIN_URL_REGEX = /^https?:\/\/([a-z]{2,3}\.)?linkedin\.com\/in\
 // Perfil de cliente ideal (ICP). Se inyecta en todos los prompts.
 export const ICP_DESCRIPTION = `
 Segmentos objetivo (ICP):
-1) Coaches / consultores independientes (venden su conocimiento 1:1 o en grupo: ventas, SEO,
-   marketing, productividad, negocios online, mentoring).
-2) Dueños de comunidades / formaciones (fundadores de comunidades de pago tipo Skool, cursos
-   o membresías online).
-3) Infoproductores / creadores B2B (viven de contenido + producto digital, ya entienden de
-   funnels y necesitan escalar operación).
+1) Empresas B2B de alto nivel, agencias consolidadas y líderes de mercado (ej. consultora #1 de Youtube España, app fitness #1 de España).
+2) Operaciones que necesitan resolver cuellos de botella matemáticos y de volumen en la adquisición de clientes.
 
-Dolor que resuelve la agencia de IA para este ICP: ahorrar tiempo (automatizar atención al
-cliente, onboarding y seguimiento de leads), escalar sin contratar más equipo (agentes que
-cualifican, agendan y hacen soporte), y dar consistencia (sistemas que no dependen de que el
-coach esté encima todo el día).
+Dolor que resuelve: No hacemos "tonterías de automatizaciones" ni "bots de WhatsApp" genéricos. Construimos verdaderas arquitecturas de datos (refinerías) y sistemas de prospección B2B complejos (como FlowNext o ApexEngine) que resuelven los límites de volumen y scraping. Hablamos de sistemas técnicos que extraen, limpian, hiper-personalizan y superan los límites de LinkedIn de forma sistemática para inyectar prospectos hiper-cualificados directamente.
 `.trim();
 
 export interface ContentPillar {
@@ -47,30 +40,25 @@ export interface ContentPillar {
 // Pilares de contenido fijos. El motor de contenido rota entre ellos según el día del año.
 export const CONTENT_PILLARS: ContentPillar[] = [
   {
-    nombre: 'Autoridad / Educativo',
-    objetivo: 'Demostrar que entiendes de IA aplicada a negocios de coaching/consultoría',
-    ejemploAngulo: '3 tareas que tu asistente ya podría no hacer si tuvieras esto',
+    nombre: 'Sistemas de Prospección / Arquitectura (FlowNext)',
+    objetivo: 'Explicar de forma técnica cómo construyes arquitecturas complejas de prospección B2B que resuelven cuellos de botella de volumen.',
+    ejemploAngulo: 'Sabes exactamente cuántos días de trabajo manual te separan de quebrar. El problema no es el volumen, es la arquitectura de datos que usas para refinar 1000 leads.',
   },
   {
-    nombre: 'Caso de cliente / Resultado',
-    objetivo: 'Prueba social concreta',
-    ejemploAngulo: 'Cómo [tipo de cliente] recuperó 8h/semana con un agente de IA',
+    nombre: 'Casos de Éxito Top / Resultados',
+    objetivo: 'Demostrar autoridad brutal y seca con clientes reales de élite.',
+    ejemploAngulo: 'Cómo le montamos el sistema de prospección a la app fitness #1 de España para superar sus límites de adquisición.',
   },
   {
-    nombre: 'Behind the scenes / Opinión',
-    objetivo: 'Conexión humana, el algoritmo lo premia',
-    ejemploAngulo: 'Lo que nadie te cuenta de meter IA en tu negocio',
+    nombre: 'Anti-Automatización Básica (Contrarian)',
+    objetivo: 'Atacar las automatizaciones mediocres (bots de WhatsApp, IA básica) y defender los verdaderos sistemas de ingeniería de datos.',
+    ejemploAngulo: 'Todos venden agentes de WhatsApp que no sirven. Nosotros construimos refinerías de datos que saltan las limitaciones y cualifican de verdad.',
   },
   {
-    nombre: 'Contrarian / Mito',
-    objetivo: 'Detener el scroll, generar debate',
-    ejemploAngulo: 'La IA no te va a quitar clientes. Esto sí.',
-  },
-  {
-    nombre: 'Storytelling personal',
-    objetivo: 'Humanizar tu marca de agencia',
-    ejemploAngulo: 'El día que un cliente casi se va por esto...',
-  },
+    nombre: 'Calidad vs Cantidad / Hiper-Personalización (ApexEngine)',
+    objetivo: 'Mostrar cómo los sistemas complejos (lectura fría, inferencia de datos) consiguen tasas de respuesta imposibles para el outreach manual.',
+    ejemploAngulo: 'Mandar 100 DMs genéricos no sirve. Inyectar 25 prospectos diarios con hiper-personalización algorítmica es lo que cierra tratos.',
+  }
 ];
 
 // Reglas de puntuación de prospectos.
