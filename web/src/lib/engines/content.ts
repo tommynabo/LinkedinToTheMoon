@@ -141,6 +141,7 @@ REGLAS ESTRICTAS PARA EL POST:
   3. Diferencia entre automatización mediocre (lo que hace todo el mundo) vs arquitectura sólida de ingeniería de datos.
 - Nada de preguntas de gurú ("¿Qué opinas?", "¿Cuántas horas ahorras?"). 
 - Frases cortas, un salto de línea cada 1-2 frases, sin jerga corporativa motivacional, 0% emojis.
+- PROHIBIDO usar guiones (como "-", "—" o "–") en el texto. Usa comas o puntos para separar frases.
 
 Genera:
 - 3 hooks alternativos (máx 15 palabras cada uno, directos al dolor/volumen)

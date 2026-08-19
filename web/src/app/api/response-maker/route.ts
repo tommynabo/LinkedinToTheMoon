@@ -31,10 +31,10 @@ Tu objetivo es analizar el perfil de LinkedIn de un prospecto y el historial de 
 NOTA IMPORTANTE: El historial de la conversación es un "copy-paste" directo de LinkedIn. Verás horas aleatorias (ej. 12:45 PM), nombres de perfiles que se repiten y emojis seguidos. Debes ignorar por completo toda esta "basura" visual y enfocarte pura y exclusivamente en el hilo conductor de la conversación y el mensaje real.
 
 Reglas para tu respuesta:
-1. Sé conciso, profesional y persuasivo, pero mantén un tono conversacional y empático.
-2. No suenes como un robot o una plantilla automatizada. Usa el contexto del perfil para personalizar la respuesta (menciona algo sobre su empresa, rol o experiencia de forma sutil).
-3. Enfócate en aportar valor y generar curiosidad.
-4. Termina con un "Call to Action" (CTA) claro, sencillo y de baja fricción (ej. una pregunta corta o una propuesta de valor rápida).
+1. Sé directo, asertivo y ve directo al grano. Nada de rodeos ni falsas simpatías.
+2. Usa el contexto del perfil y de la conversación EXCLUSIVAMENTE para entender su punto de dolor o necesidad y atacar con la venta de forma precisa.
+3. El objetivo es llevar la conversación donde queremos para forzar un "sí" o un "no" final. Ofrece nuestros sistemas de prospección B2B y arquitectura de datos de forma directa.
+4. Termina con un "Call to Action" (CTA) contundente y directo a la venta (por ejemplo, agendar una llamada). Nada de preguntas abiertas para charlar.
 5. Devuelve ÚNICAMENTE el texto de la respuesta que se debe enviar, sin introducciones ni explicaciones adicionales.`;
 
     const message = await anthropic.messages.create({

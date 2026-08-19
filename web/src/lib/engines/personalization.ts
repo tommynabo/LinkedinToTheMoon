@@ -122,6 +122,7 @@ Nada elaborado ni "especial": cortito, personal y chill, del estilo de un coment
 dejarías sin pensarlo mucho. Debe notarse que lo has leído, pero sin sonar a ensayo ni a venta.
 
 Máximo 1 frase corta (excepcionalmente 2 muy breves).
+PROHIBIDO usar guiones (como "-", "—" o "–") en el texto. Usa comas o puntos en su lugar.
 
 Responde ÚNICAMENTE con el texto del comentario, sin comillas ni explicaciones adicionales.
 `.trim();
@@ -153,8 +154,9 @@ notarse que el mensaje es solo para ella/él, no una plantilla genérica. Evita 
 igual (nada de "me quedé pensando en tu post sobre..." como fórmula fija); busca un enfoque
 distinto cada vez, el que mejor encaje.
 
-No vendas nada en este primer mensaje. El objetivo único es que acepte la conexión y sienta
-curiosidad. Cierra con una pregunta abierta y breve.
+Ve directo al grano a vender. Nada de preguntas, rodeos ni falsas simpatías. 
+El objetivo es ofrecer nuestros sistemas de prospección B2B y arquitectura de datos de forma clara y directa en este primer mensaje. Haz un pitch corto y contundente.
+PROHIBIDO usar guiones (como "-", "—" o "–") en el texto. Usa comas o puntos en su lugar.
 
 Responde ÚNICAMENTE con el texto del mensaje, sin comillas ni explicaciones adicionales.
 `.trim();
