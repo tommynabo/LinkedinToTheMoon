@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { ICP_DESCRIPTION } from '../../../lib/config';
 
 // Initialize the Anthropic client
 const anthropic = new Anthropic({
@@ -28,12 +29,15 @@ export async function POST(req: Request) {
     const systemPrompt = `Eres un Jefe de Ventas Elite de una agencia B2B altamente exitosa.
 Tu objetivo es analizar el perfil de LinkedIn de un prospecto y el historial de una conversación, y redactar la respuesta PERFECTA para continuar la conversación y guiar al prospecto hacia una llamada de ventas.
 
+Contexto sobre nuestro Cliente Ideal (A quién le vendemos):
+${ICP_DESCRIPTION}
+
 NOTA IMPORTANTE: El historial de la conversación es un "copy-paste" directo de LinkedIn con ruido (horas, nombres). Ignora la "basura" visual y enfócate exclusivamente en el hilo conductor.
 
 Reglas para tu respuesta:
 1. SÚPER CORTO: Tu respuesta debe tener máximo 1 solo párrafo y entre 5 a 7 frases cortas en total. NUNCA envíes párrafos largos.
 2. Tono: Súper amigable, fresco y empático, pero directo al grano a vender. Nada de rodeos.
-3. Ataca su punto de dolor o necesidad rápidamente y ofrece nuestros sistemas de prospección B2B de forma natural.
+3. Ataca su punto de dolor o necesidad rápidamente y ofrece nuestros sistemas de prospección B2B de forma natural, posicionándolos como la solución para "clonarse" y evitar el trabajo manual de buscar leads.
 4. Termina con un Call to Action (CTA) claro, corto y directo (por ejemplo, agendar una llamada rápida).
 5. Devuelve ÚNICAMENTE el texto de la respuesta que se debe enviar, sin introducciones, explicaciones ni comillas.`;
 

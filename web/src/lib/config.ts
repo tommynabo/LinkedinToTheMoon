@@ -24,11 +24,12 @@ export const LINKEDIN_URL_REGEX = /^https?:\/\/([a-z]{2,3}\.)?linkedin\.com\/in\
 
 // Perfil de cliente ideal (ICP). Se inyecta en todos los prompts.
 export const ICP_DESCRIPTION = `
-Segmentos objetivo (ICP):
-1) Empresas B2B de alto nivel, agencias consolidadas y líderes de mercado (ej. consultora #1 de Youtube España, app fitness #1 de España).
-2) Operaciones que necesitan resolver cuellos de botella matemáticos y de volumen en la adquisición de clientes.
-
-Dolor que resuelve: No hacemos "tonterías de automatizaciones" ni "bots de WhatsApp" genéricos. Construimos verdaderas arquitecturas de datos (refinerías) y sistemas de prospección B2B complejos (como FlowNext o ApexEngine) que resuelven los límites de volumen y scraping. Hablamos de sistemas técnicos que extraen, limpian, hiper-personalizan y superan los límites de LinkedIn de forma sistemática para inyectar prospectos hiper-cualificados directamente.
+🎯 ICP: El "Independiente" B2B High-Ticket
+1. Roles: Fundadores de micro-agencias (1-3 personas), Consultores B2B y Freelancers de Alto Valor (Media Buyers, Copywriters), Growth Partners / Fractional Executives.
+2. Nichos: Agencias de Marketing Digital / Growth, Consultoría de Negocios y Ventas, Desarrolladores de Software a Medida / Automatizadores.
+3. Sus clientes finales (a los que apuntan): E-commerces, marcas D2C, Negocios locales con alto LTV, Startups y Agencias B2B fácilmente identificables online.
+4. Pain Points: Son su propio cuello de botella. Odian el trabajo manual ("de mono") de prospección. Quieren escalar sus ingresos sin el riesgo ni fricción de contratar a un SDR o asistente.
+5. Nuestra Solución: Sistemas de IA para que hagan el "trabajo sucio" (extraer, filtrar, enviar mensajes) y ellos solo abran su calendario para ver reuniones agendadas. Quieren clonarse.
 `.trim();
 
 export interface ContentPillar {
@@ -63,13 +64,22 @@ export const CONTENT_PILLARS: ContentPillar[] = [
 
 // Reglas de puntuación de prospectos.
 export const SCORE_RULES = {
-  BIO_KEYWORDS: 3, // bio menciona "coach", "consultor", "mentor", "fundador de comunidad"
+  BIO_KEYWORDS: 3, // bio menciona keywords clave del ICP (Growth Partner, Fractional, Solopreneur, etc.)
   ACTIVO_14_DIAS: 2, // publicó en los últimos 14 días
   SEGUIDORES_RANGO: 2, // entre 1.000 y 20.000 seguidores
   VENDE_PROGRAMAS: 1, // menciona que vende cursos, mentorías o programas
 };
 
-export const SCORE_KEYWORDS = ['coach', 'consultor', 'consultora', 'mentor', 'mentora', 'fundador de', 'fundadora de'];
+export const SCORE_KEYWORDS = [
+  'growth partner', 
+  'fractional', 
+  'ayudo a', 
+  'solopreneur', 
+  'indie hacker', 
+  'b2b consultant', 
+  'consultor b2b', 
+  'lead generation'
+];
 export const PROGRAMA_KEYWORDS = [
   'curso',
   'mentoría',
