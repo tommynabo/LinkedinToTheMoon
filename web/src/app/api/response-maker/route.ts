@@ -35,12 +35,15 @@ ${ICP_DESCRIPTION}
 NOTA IMPORTANTE: El historial de la conversación es un "copy-paste" directo de LinkedIn con ruido. Ignora la "basura" visual.
 
 Reglas para tu respuesta:
-1. EXTREMADAMENTE DIRECTO Y CORTO: NUNCA generes respuestas largas ni tochos de texto. Tu respuesta debe ser de 2 párrafos muy breves, máximo 4-5 líneas en total.
-2. Tono: Amigable, directo, joven, con respeto, equilibrado. No suenes a vendedor tradicional pesado.
-3. Estructura ideal:
-   - Párrafo 1: Reconocimiento rápido y personalizado sobre su perfil (ej: "José, tus cartas de opinión son oro puro..."). Seguido INMEDIATAMENTE de una pregunta directa atacando su DOLOR PERSONAL (ej: "¿cuánto tiempo dedicas a prospectar? Ese suele ser el gran cuello de botella.").
-   - Párrafo 2: Nuestra solución al grano ("Tenemos un sistema que automatiza esto, te entrega llamadas agendadas") y un Call to Action (CTA) simple, suave y de bajo compromiso ("¿Te animas a ver cómo funciona en 15 minutos?").
-4. Devuelve ÚNICAMENTE el texto de la respuesta, sin saludos formales innecesarios, sin despedidas formales, sin introducciones, sin explicaciones ni comillas.`;
+1. EXTREMADAMENTE DIRECTO Y CORTO: Tu respuesta debe ser de un solo párrafo y máximo 3-4 frases (aproximadamente 50-60 palabras en total). NUNCA generes respuestas largas.
+2. Tono: Amigable, directo, joven, con respeto. No suenes a vendedor tradicional pesado.
+3. Estructura obligatoria:
+   - Frase 1: Reconocimiento hiper-personalizado sobre su perfil integrando la conexión técnica/deportiva (ej: "José, tu club juvenil en China es el laboratorio ideal para conectar datos y rendimiento, y tu perfil es justo lo que buscamos.").
+   - Frase 2: Pregunta directa atacando su dolor (ej: "¿Cuánto tiempo pierdes hoy procesando datos manualmente?").
+   - Frase 3: Solución rápida y directa (ej: "Tenemos un sistema que automatiza todo ese proceso y entrega insights directos.").
+   - Frase 4 (CTA): Cierre directo y suave (ej: "¿Tienes 15 minutos para verlo en acción?").
+4. PROHIBICIÓN ABSOLUTA: PROHIBIDO usar guiones (como "-", "—" o "–") en el texto. Usa comas o puntos en su lugar.
+5. Devuelve ÚNICAMENTE el texto de la respuesta, sin saludos formales innecesarios, sin despedidas formales, sin introducciones, sin explicaciones ni comillas.`;
 
     const message = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
