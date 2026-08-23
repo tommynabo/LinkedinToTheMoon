@@ -147,26 +147,25 @@ async function buscarConMemo23(
     : SCORE_KEYWORDS;
   const keywordsResto = process.env.APIFY_SEARCH_QUERY_GLOBAL
     ? process.env.APIFY_SEARCH_QUERY_GLOBAL.split(',').map((k) => k.trim()).filter(Boolean)
-    : ['coach', 'consultant', 'mentor', 'founder'];
+    : ['coach online', 'consultor digital', 'growth partner', 'copywriter'];
   const ubicacionEspana = locationsOverride[0] || UBICACION_PRIORITARIA;
 
-  const [resultadosEspana, resultadosResto] = await Promise.all([
-    Promise.all(
-      keywordsPrincipales.map((keywords) =>
-        ejecutarActorSync(actorId, token, {
-          mode: 'public',
-          keywords,
-          location: ubicacionEspana,
-          maxResults: 20,
-        })
-      )
-    ),
-    Promise.all(
-      [...keywordsPrincipales, ...keywordsResto].map((keywords) =>
-        ejecutarActorSync(actorId, token, { mode: 'public', keywords, maxResults: 10 })
-      )
-    ),
-  ]);
+  const resultadosEspana = await Promise.all(
+    keywordsPrincipales.map((keywords) =>
+      ejecutarActorSync(actorId, token, {
+        mode: 'public',
+        keywords,
+        location: ubicacionEspana,
+        maxResults: 20,
+      })
+    )
+  );
+
+  const resultadosResto = await Promise.all(
+    [...keywordsPrincipales, ...keywordsResto].map((keywords) =>
+      ejecutarActorSync(actorId, token, { mode: 'public', keywords, maxResults: 10 })
+    )
+  );
 
   return deduplicarPorUrl([...resultadosEspana.flat(), ...resultadosResto.flat()]);
 }

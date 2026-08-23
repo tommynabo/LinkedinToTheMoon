@@ -24,10 +24,10 @@ export const LINKEDIN_URL_REGEX = /^https?:\/\/([a-z]{2,3}\.)?linkedin\.com\/in\
 
 // Perfil de cliente ideal (ICP). Se inyecta en todos los prompts.
 export const ICP_DESCRIPTION = `
-🎯 ICP: El "Independiente" B2B High-Ticket
-1. Roles: Fundadores de micro-agencias (1-3 personas), Consultores B2B y Freelancers de Alto Valor (Media Buyers, Copywriters), Growth Partners / Fractional Executives.
-2. Nichos: Agencias de Marketing Digital / Growth, Consultoría de Negocios y Ventas, Desarrolladores de Software a Medida / Automatizadores.
-3. Sus clientes finales (a los que apuntan): E-commerces, marcas D2C, Negocios locales con alto LTV, Startups y Agencias B2B fácilmente identificables online.
+🎯 ICP: El "Independiente" B2B High-Ticket enfocado en el mundo digital y online.
+1. Roles: Consultores SEO, Growth Partners, Creative Strategists, Copywriters, Especialistas en Ads, Consultores de Infoproductos, Fundadores SaaS, Conversion Copywriters, Consultores de Marca Personal, y Coaches online.
+2. Nichos: Marketing Digital, Growth, E-commerce D2C, Infoproductos y Negocios Online nativos.
+3. Sus clientes finales (a los que apuntan): E-commerces, marcas D2C, Startups, Agencias B2B y creadores de contenido.
 4. Pain Points: Son su propio cuello de botella. Odian el trabajo manual ("de mono") de prospección. Quieren escalar sus ingresos sin el riesgo ni fricción de contratar a un SDR o asistente.
 5. Nuestra Solución: Sistemas de IA para que hagan el "trabajo sucio" (extraer, filtrar, enviar mensajes) y ellos solo abran su calendario para ver reuniones agendadas. Quieren clonarse.
 `.trim();
@@ -71,14 +71,17 @@ export const SCORE_RULES = {
 };
 
 export const SCORE_KEYWORDS = [
-  'growth partner', 
-  'fractional', 
-  'ayudo a', 
-  'solopreneur', 
-  'indie hacker', 
-  'b2b consultant', 
-  'consultor b2b', 
-  'lead generation'
+  'consultor seo',
+  'growth partner',
+  'creative strategist',
+  'copywriter',
+  'ads',
+  'consultor infoproductos',
+  'saas',
+  'conversion copy',
+  'consultor marca personal',
+  'coach online',
+  'consultor digital'
 ];
 export const PROGRAMA_KEYWORDS = [
   'curso',
