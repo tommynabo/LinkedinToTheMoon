@@ -208,9 +208,16 @@ export async function buscarUltimosPosts(urls: string[]): Promise<Map<string, { 
 
     for (const item of items) {
       const autorUrl = item.author?.linkedinUrl || item.authorUrl || '';
-      const contenido = (item.content || item.text || '').trim();
+      const contenido = (item.content || item.text || item.repost?.content || '').trim();
       const postUrl = item.linkedinUrl || item.url || '';
-      const fecha = item.publishedAt || item.postedAt || item.date || item.publishedAtISO || null;
+      
+      let fecha = null;
+      if (typeof item.postedAt === 'object' && item.postedAt?.date) {
+        fecha = item.postedAt.date;
+      } else {
+        fecha = item.publishedAt || item.postedAt || item.date || item.publishedAtISO || null;
+      }
+
       if (!autorUrl || !contenido) continue;
       const clave = normalizeLinkedInUrl(autorUrl);
       if (!resultado.has(clave)) resultado.set(clave, { texto: contenido, url: postUrl, fecha });
