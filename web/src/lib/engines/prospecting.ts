@@ -77,7 +77,12 @@ export async function buscarProspectosDeHoy(): Promise<ResultadoProspeccion> {
         chunks.push(urlsSinPost.slice(i, i + chunkSize));
       }
 
-      const results = await Promise.all(chunks.map((chunk) => buscarUltimosPosts(chunk)));
+      const results = [];
+      for (const chunk of chunks) {
+        results.push(await buscarUltimosPosts(chunk));
+        // Espera corta entre lotes para no saturar al actor de Apify
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
       for (const map of results) {
         for (const [key, val] of map.entries()) {
           ultimosPosts.set(key, val);
