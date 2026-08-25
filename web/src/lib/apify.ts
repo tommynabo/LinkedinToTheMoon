@@ -43,23 +43,39 @@ function esActorMemo23(actorId: string): boolean {
 async function ejecutarActorSync(
   actorId: string,
   token: string,
-  input: Record<string, unknown>
+  input: Record<string, unknown>,
+  retries = 3
 ): Promise<Record<string, any>[]> {
   const url = `https://api.apify.com/v2/acts/${encodeURIComponent(
     actorId
   )}/run-sync-get-dataset-items?token=${encodeURIComponent(token)}`;
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(input),
-  });
+  let lastError: Error | null = null;
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(input),
+      });
 
-  if (!response.ok) {
-    throw new Error(`Error llamando a Apify (HTTP ${response.status}): ${await response.text()}`);
+      if (!response.ok) {
+        throw new Error(`Error llamando a Apify (HTTP ${response.status}): ${await response.text()}`);
+      }
+
+      return (await response.json()) as Record<string, any>[];
+    } catch (err: any) {
+      lastError = err;
+      const esErrorDeServidor = err.message && err.message.includes('HTTP 5');
+      const esErrorDeRed = err.name === 'FetchError' || err.name === 'TypeError'; // fetch network errs
+      if (attempt < retries && (esErrorDeServidor || esErrorDeRed)) {
+        await new Promise((resolve) => setTimeout(resolve, attempt * 3000));
+        continue;
+      }
+      throw err;
+    }
   }
-
-  return (await response.json()) as Record<string, any>[];
+  throw lastError;
 }
 
 function deduplicarPorUrl(items: Record<string, any>[]): ProspectoCrudo[] {
