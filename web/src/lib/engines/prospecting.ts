@@ -63,7 +63,7 @@ export async function buscarProspectosDeHoy(): Promise<ResultadoProspeccion> {
   const preSeleccionados = [...poolEspana, ...poolResto];
 
   // Buscar posts ANTES de hacer el corte final para priorizar a los que sí tengan post
-  let ultimosPosts = new Map<string, { texto: string; url: string }>();
+  let ultimosPosts = new Map<string, { texto: string; url: string; fecha: string | null }>();
   if (fuente === 'Apify') {
     const urlsSinPost = preSeleccionados
       .filter((c) => !c.prospecto.ultimoPostTema)
