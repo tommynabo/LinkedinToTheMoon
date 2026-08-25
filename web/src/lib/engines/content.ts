@@ -137,15 +137,15 @@ REGLAS ESTRICTAS PARA EL POST:
 - Enfócate en SISTEMAS DE PROSPECCIÓN CONCRETOS, arquitecturas de datos, superación de cuellos de botella de volumen y calidad/hiper-personalización algorítmica.
 - Estructura obligatoria:
   1. Hook/Lectura fría (sobre el miedo profundo o el desorden de los sistemas actuales).
-  2. Desarrollo del sistema complejo/arquitectura o demostración de autoridad sobre un caso de élite.
-  3. Diferencia entre automatización mediocre (lo que hace todo el mundo) vs arquitectura sólida de ingeniería de datos.
+  2. Desarrollo dinámico y al grano (narrativa fácil de seguir, líneas rápidas, demostrando autoridad).
+  3. Mensaje impactante final (diferencia entre automatización mediocre vs arquitectura sólida).
 - Nada de preguntas de gurú ("¿Qué opinas?", "¿Cuántas horas ahorras?"). 
-- Frases cortas, un salto de línea cada 1-2 frases, sin jerga corporativa motivacional, 0% emojis.
+- Frases MUY cortas y rápidas, un salto de línea cada frase para que sea dinámico de leer, sin jerga corporativa, 0% emojis.
 - PROHIBIDO usar guiones (como "-", "—" o "–") en el texto. Usa comas o puntos para separar frases.
 
 Genera:
-- 3 hooks alternativos (máx 15 palabras cada uno, directos al dolor/volumen)
-- 1 desarrollo de 150-250 palabras
+- 3 hooks alternativos (máx 12 palabras cada uno, súper directos y al grano)
+- 1 desarrollo CORTO de 60-100 palabras (ritmo rápido, dinámico e impactante)
 - 1 CTA final (directo, ofreciendo mostrar arquitectura o invitando por DM, de forma aséptica)
 
 Responde ÚNICAMENTE con un objeto JSON con esta forma exacta, sin texto adicional:
