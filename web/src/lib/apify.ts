@@ -193,8 +193,8 @@ async function buscarConMemo23(
  * simplemente no aparece en el mapa devuelto, para no tumbar toda la prospección por un
  * único error de scraping.
  */
-export async function buscarUltimosPosts(urls: string[]): Promise<Map<string, { texto: string; url: string }>> {
-  const resultado = new Map<string, { texto: string; url: string }>();
+export async function buscarUltimosPosts(urls: string[]): Promise<Map<string, { texto: string; url: string; fecha: string | null }>> {
+  const resultado = new Map<string, { texto: string; url: string; fecha: string | null }>();
   const token = process.env.APIFY_API_TOKEN;
   const actorId = process.env.APIFY_POSTS_ACTOR_ID || 'harvestapi/linkedin-profile-posts';
   if (!token || urls.length === 0) return resultado;
@@ -210,9 +210,10 @@ export async function buscarUltimosPosts(urls: string[]): Promise<Map<string, { 
       const autorUrl = item.author?.linkedinUrl || item.authorUrl || '';
       const contenido = (item.content || item.text || '').trim();
       const postUrl = item.linkedinUrl || item.url || '';
+      const fecha = item.publishedAt || item.postedAt || item.date || item.publishedAtISO || null;
       if (!autorUrl || !contenido) continue;
       const clave = normalizeLinkedInUrl(autorUrl);
-      if (!resultado.has(clave)) resultado.set(clave, { texto: contenido, url: postUrl });
+      if (!resultado.has(clave)) resultado.set(clave, { texto: contenido, url: postUrl, fecha });
     }
   } catch (err) {
     console.error('Error obteniendo últimos posts de Apify:', err);

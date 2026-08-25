@@ -91,18 +91,44 @@ export async function buscarProspectosDeHoy(): Promise<ResultadoProspeccion> {
     }
   }
 
-  // Dar un bonus masivo a los que tienen post
+  // Función para evaluar si un post es reciente (últimos 30 días)
+  const haceUnMes = new Date();
+  haceUnMes.setMonth(haceUnMes.getMonth() - 1);
+  const unMesMs = haceUnMes.getTime();
+
+  function esPostReciente(fechaStr: string | null | undefined): boolean {
+    if (!fechaStr) return true; // Si no hay fecha (ej. viene del primer scraper), asumimos que es válido para no perderlo
+    const fecha = new Date(fechaStr).getTime();
+    return fecha >= unMesMs;
+  }
+
+  // Dar un bonus masivo a los que tienen post reciente y descartar a los que tienen un post viejo
+  const candidatosValidos = [];
   for (const c of preSeleccionados) {
     const urlNorm = normalizeLinkedInUrl(c.prospecto.url);
-    const tienePost = Boolean(c.prospecto.ultimoPostTema || ultimosPosts.has(urlNorm));
-    if (tienePost) {
-      c.score += 1000;
+    const postEncontrado = ultimosPosts.get(urlNorm);
+    
+    // El post es el que encontró el segundo scraper, o si no lo hay, el que venía del primero
+    const tienePostTexto = Boolean(c.prospecto.ultimoPostTema || postEncontrado?.texto);
+    const fechaPost = postEncontrado?.fecha || c.prospecto.ultimoPostFecha || null;
+    
+    if (tienePostTexto) {
+      if (esPostReciente(fechaPost)) {
+        c.score += 1000;
+        candidatosValidos.push(c);
+      } else {
+        // Descartamos prospectos cuyo post sea más viejo de 1 mes (petición expresa)
+        continue;
+      }
+    } else {
+      // No tienen post. Los mantenemos pero sin el bonus, irán al final de la lista.
+      candidatosValidos.push(c);
     }
   }
 
   // Reordenar con el nuevo score
-  const deEspanaConPosts = preSeleccionados.filter((c) => c.esEspana).sort((a, b) => b.score - a.score);
-  const restoConPosts = preSeleccionados.filter((c) => !c.esEspana).sort((a, b) => b.score - a.score);
+  const deEspanaConPosts = candidatosValidos.filter((c) => c.esEspana).sort((a, b) => b.score - a.score);
+  const restoConPosts = candidatosValidos.filter((c) => !c.esEspana).sort((a, b) => b.score - a.score);
 
   // Hacer el corte final de PROSPECTOS_POR_DIA
   const elegidosEspana = deEspanaConPosts.slice(0, MINIMO_ESPANA_POR_DIA);
