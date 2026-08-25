@@ -135,7 +135,22 @@ export async function buscarProspectosDeHoy(): Promise<ResultadoProspeccion> {
   const huecosRestantes = PROSPECTOS_POR_DIA - elegidosEspana.length;
   const relleno = [...deEspanaConPosts.slice(elegidosEspana.length), ...restoConPosts].slice(0, huecosRestantes);
 
-  const nuevos = [...elegidosEspana, ...relleno].sort((a, b) => b.score - a.score);
+  let nuevos = [...elegidosEspana, ...relleno].sort((a, b) => b.score - a.score);
+  
+  // Filtrado duro: Máximo 20% de leads SIN post para garantizar que el 80% sí tenga post
+  const limiteSinPosts = Math.floor(PROSPECTOS_POR_DIA * 0.20);
+  let contadorSinPosts = 0;
+  
+  nuevos = nuevos.filter((c) => {
+    // Si tiene el bonus masivo, es que tiene post
+    const tienePost = c.score >= 1000;
+    if (!tienePost) {
+      if (contadorSinPosts >= limiteSinPosts) return false;
+      contadorSinPosts++;
+    }
+    return true;
+  });
+
   const totalDeEspana = nuevos.filter((c) => c.esEspana).length;
 
   for (const { prospecto, score } of nuevos) {
