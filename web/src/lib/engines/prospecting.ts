@@ -175,7 +175,9 @@ export async function buscarProspectosDeHoy(): Promise<ResultadoProspeccion> {
   // Hacer el corte final de PROSPECTOS_POR_DIA
   const elegidosEspana   = deEspanaConPosts.slice(0, MINIMO_ESPANA_POR_DIA);
   const huecosRestantes  = PROSPECTOS_POR_DIA - elegidosEspana.length;
-  const relleno          = [...deEspanaConPosts.slice(elegidosEspana.length), ...restoConPosts].slice(0, huecosRestantes);
+  const relleno          = [...deEspanaConPosts.slice(elegidosEspana.length), ...restoConPosts]
+                             .sort((a, b) => b.score - a.score)
+                             .slice(0, huecosRestantes);
 
   let nuevos = [...elegidosEspana, ...relleno].sort((a, b) => b.score - a.score);
 
