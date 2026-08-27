@@ -12,11 +12,17 @@ import { calcularScore, getUrlsConocidas } from '../scoring';
 import { esProspectoValido, normalizeLinkedInUrl } from '../validation';
 import type { ProspectoCrudo } from '../types';
 
+// Longitud mínima del texto de un post para que valga para comentar.
+// Un "tema" de 2-3 palabras del primer scraper NO cuenta como post real.
+const MIN_POST_CHARS = 50;
+
 export interface ResultadoProspeccion {
   nuevos: number;
   fuente: 'Apify' | 'Import manual' | 'ninguna';
   descartadosPorValidacion: number;
   deEspana: number;
+  conPost: number;       // ← nuevo: cuántos de los guardados tienen post real
+  sinPost: number;       // ← nuevo: cuántos se guardaron sin post (no debería haber)
 }
 
 export async function buscarProspectosDeHoy(): Promise<ResultadoProspeccion> {
@@ -36,11 +42,12 @@ export async function buscarProspectosDeHoy(): Promise<ResultadoProspeccion> {
   }
 
   if (candidatos.length === 0) {
-    return { nuevos: 0, fuente: 'ninguna', descartadosPorValidacion: 0, deEspana: 0 };
+    return { nuevos: 0, fuente: 'ninguna', descartadosPorValidacion: 0, deEspana: 0, conPost: 0, sinPost: 0 };
   }
 
   const validos = candidatos.filter(esProspectoValido);
   const descartadosPorValidacion = candidatos.length - validos.length;
+  console.log(`[Prospecting] Candidatos crudos: ${candidatos.length}, válidos: ${validos.length}, descartados: ${descartadosPorValidacion}`);
 
   const urlsConocidas = await getUrlsConocidas();
   const candidatosClasificados = validos
@@ -50,44 +57,61 @@ export async function buscarProspectosDeHoy(): Promise<ResultadoProspeccion> {
       score: calcularScore(p),
       idioma: detectarIdiomaAprox(`${p.cargo} ${p.bio}`),
       esEspana: esDeEspana(p.url, `${p.cargo} ${p.bio}`),
+      tienePostReal: false,   // ← flag explícito, se actualiza tras el scraper de posts
     }))
-    // Exclusión total de portugués/brasileño, pedido explícito del ICP (no es solo cuota).
+    // Exclusión total de portugués/brasileño, pedido explícito del ICP.
     .filter((c) => c.idioma !== 'pt');
 
-  // Separar por ubicación y pre-seleccionar un grupo más amplio (top ~70) para buscar posts
-  const deEspanaAll = candidatosClasificados.filter((c) => c.esEspana).sort((a, b) => b.score - a.score);
-  const restoAll = candidatosClasificados.filter((c) => !c.esEspana).sort((a, b) => b.score - a.score);
+  console.log(`[Prospecting] Tras deduplicar y filtrar PT: ${candidatosClasificados.length} candidatos`);
 
-  const poolEspana = deEspanaAll.slice(0, Math.max(MINIMO_ESPANA_POR_DIA * 2, 30));
-  const poolResto = restoAll.slice(0, Math.max(PROSPECTOS_POR_DIA * 2, 40));
+  // Separar por ubicación. Pool amplio (×4) para tener suficiente cantera de donde sacar
+  // 25 con post reciente sin quedarnos cortos.
+  const deEspanaAll = candidatosClasificados.filter((c) => c.esEspana).sort((a, b) => b.score - a.score);
+  const restoAll    = candidatosClasificados.filter((c) => !c.esEspana).sort((a, b) => b.score - a.score);
+
+  const poolEspana = deEspanaAll.slice(0, Math.max(MINIMO_ESPANA_POR_DIA * 4, 60));
+  const poolResto  = restoAll.slice(0, Math.max(PROSPECTOS_POR_DIA * 4, 80));
   const preSeleccionados = [...poolEspana, ...poolResto];
 
-  // Buscar posts ANTES de hacer el corte final para priorizar a los que sí tengan post
-  let ultimosPosts = new Map<string, { texto: string; url: string; fecha: string | null }>();
-  if (fuente === 'Apify') {
-    const urlsSinPost = preSeleccionados
-      .filter((c) => !c.prospecto.ultimoPostTema)
-      .map((c) => c.prospecto.url);
+  console.log(`[Prospecting] Pool preseleccionado: ${preSeleccionados.length} (${poolEspana.length} ES + ${poolResto.length} resto)`);
 
-    if (urlsSinPost.length > 0) {
+  // ─────────────────────────────────────────────────────────────────────────
+  // Buscar posts para TODOS los candidatos del pool, sin excepción.
+  //
+  // CORRECCIÓN vs. versión anterior: antes se saltaba el segundo scraper para
+  // los perfiles que ya traían `ultimoPostTema` del primer scraper. El problema
+  // es que ese campo suele ser solo el "tema" (2-3 palabras), no el texto real,
+  // así que se guardaba un texto inútil y el comentario no se podía generar.
+  // Ahora siempre llamamos al scraper de posts; el `ultimoPostTema` solo se usa
+  // como fallback si el scraper no devuelve nada.
+  // ─────────────────────────────────────────────────────────────────────────
+  let ultimosPosts = new Map<string, { texto: string; url: string; fecha: string | null }>();
+
+  if (fuente === 'Apify') {
+    const todasLasUrls = preSeleccionados.map((c) => c.prospecto.url);
+
+    if (todasLasUrls.length > 0) {
       // Chunk en lotes de 15 para evitar el timeout de 60s de Apify run-sync
       const chunkSize = 15;
-      const chunks = [];
-      for (let i = 0; i < urlsSinPost.length; i += chunkSize) {
-        chunks.push(urlsSinPost.slice(i, i + chunkSize));
+      const chunks: string[][] = [];
+      for (let i = 0; i < todasLasUrls.length; i += chunkSize) {
+        chunks.push(todasLasUrls.slice(i, i + chunkSize));
       }
 
-      const results = [];
+      console.log(`[Prospecting] Buscando posts en ${chunks.length} lotes (${todasLasUrls.length} perfiles)...`);
+
       for (const chunk of chunks) {
-        results.push(await buscarUltimosPosts(chunk));
-        // Espera corta entre lotes para no saturar al actor de Apify
-        await new Promise(resolve => setTimeout(resolve, 2000));
-      }
-      for (const map of results) {
-        for (const [key, val] of map.entries()) {
+        const resultado = await buscarUltimosPosts(chunk);
+        for (const [key, val] of resultado.entries()) {
           ultimosPosts.set(key, val);
         }
+        // Espera corta entre lotes para no saturar al actor de Apify
+        if (chunks.length > 1) {
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
       }
+
+      console.log(`[Prospecting] Posts encontrados por el scraper: ${ultimosPosts.size} de ${todasLasUrls.length}`);
     }
   }
 
@@ -97,67 +121,81 @@ export async function buscarProspectosDeHoy(): Promise<ResultadoProspeccion> {
   const unMesMs = haceUnMes.getTime();
 
   function esPostReciente(fechaStr: string | null | undefined): boolean {
-    if (!fechaStr) return true; // Si no hay fecha (ej. viene del primer scraper), asumimos que es válido para no perderlo
+    // Si no hay fecha, no podemos datarlo → lo dejamos pasar (mejor así que descartar
+    // un post válido por falta de metadato de fecha en la API de Apify).
+    if (!fechaStr) return true;
     const fecha = new Date(fechaStr).getTime();
+    if (Number.isNaN(fecha)) return true; // fecha inválida → no descartar
     return fecha >= unMesMs;
   }
 
-  // Dar un bonus masivo a los que tienen post reciente y descartar a los que tienen un post viejo
+  function esTextoPostValido(texto: string | null | undefined): boolean {
+    return Boolean(texto && texto.trim().length >= MIN_POST_CHARS);
+  }
+
+  // Evaluar cada candidato con lógica clara usando el flag booleano
   const candidatosValidos = [];
+  let descartadosPorPostViejo = 0;
+
   for (const c of preSeleccionados) {
     const urlNorm = normalizeLinkedInUrl(c.prospecto.url);
-    const postEncontrado = ultimosPosts.get(urlNorm);
-    
-    // El post es el que encontró el segundo scraper, o si no lo hay, el que venía del primero
-    const tienePostTexto = Boolean(c.prospecto.ultimoPostTema || postEncontrado?.texto);
-    const fechaPost = postEncontrado?.fecha || c.prospecto.ultimoPostFecha || null;
-    
-    if (tienePostTexto) {
+    const postScraper = ultimosPosts.get(urlNorm);
+
+    // El texto del post: preferimos el del segundo scraper (más completo).
+    // Solo usamos ultimoPostTema del primer scraper como último recurso.
+    const textoPost = postScraper?.texto?.trim() || c.prospecto.ultimoPostTema?.trim() || null;
+    const fechaPost  = postScraper?.fecha || c.prospecto.ultimoPostFecha || null;
+
+    // Un post cuenta como "real" solo si tiene suficiente texto para comentar.
+    const postEsValido = esTextoPostValido(textoPost);
+
+    if (postEsValido) {
       if (esPostReciente(fechaPost)) {
-        c.score += 1000;
+        c.tienePostReal = true;
+        c.score += 1000; // bonus masivo para priorizar en el ranking final
         candidatosValidos.push(c);
       } else {
-        // Descartamos prospectos cuyo post sea más viejo de 1 mes (petición expresa)
+        // Post viejo (> 30 días): descartamos
+        descartadosPorPostViejo++;
         continue;
       }
     } else {
-      // No tienen post. Los mantenemos pero sin el bonus, irán al final de la lista.
+      // Sin post (o texto demasiado corto): lo mantenemos pero sin bonus ni flag.
+      // Irán al final del ranking y serán eliminados por el filtro duro de abajo.
       candidatosValidos.push(c);
     }
   }
 
+  console.log(`[Prospecting] Candidatos tras evaluar posts: ${candidatosValidos.length} (${candidatosValidos.filter(c => c.tienePostReal).length} con post real, ${descartadosPorPostViejo} descartados por post viejo)`);
+
   // Reordenar con el nuevo score
   const deEspanaConPosts = candidatosValidos.filter((c) => c.esEspana).sort((a, b) => b.score - a.score);
-  const restoConPosts = candidatosValidos.filter((c) => !c.esEspana).sort((a, b) => b.score - a.score);
+  const restoConPosts    = candidatosValidos.filter((c) => !c.esEspana).sort((a, b) => b.score - a.score);
 
   // Hacer el corte final de PROSPECTOS_POR_DIA
-  const elegidosEspana = deEspanaConPosts.slice(0, MINIMO_ESPANA_POR_DIA);
-  const huecosRestantes = PROSPECTOS_POR_DIA - elegidosEspana.length;
-  const relleno = [...deEspanaConPosts.slice(elegidosEspana.length), ...restoConPosts].slice(0, huecosRestantes);
+  const elegidosEspana   = deEspanaConPosts.slice(0, MINIMO_ESPANA_POR_DIA);
+  const huecosRestantes  = PROSPECTOS_POR_DIA - elegidosEspana.length;
+  const relleno          = [...deEspanaConPosts.slice(elegidosEspana.length), ...restoConPosts].slice(0, huecosRestantes);
 
   let nuevos = [...elegidosEspana, ...relleno].sort((a, b) => b.score - a.score);
-  
-  // Filtrado duro: Máximo 20% de leads SIN post para garantizar que el 80% sí tenga post
-  const limiteSinPosts = Math.floor(PROSPECTOS_POR_DIA * 0.20);
-  let contadorSinPosts = 0;
-  
-  nuevos = nuevos.filter((c) => {
-    // Si tiene el bonus masivo, es que tiene post
-    const tienePost = c.score >= 1000;
-    if (!tienePost) {
-      if (contadorSinPosts >= limiteSinPosts) return false;
-      contadorSinPosts++;
-    }
-    return true;
-  });
+
+  // Filtrado duro: SOLO aceptamos prospectos con post real.
+  // Calidad sobre cantidad: si no llegan a 25, mejor 18 buenos que 25 de los cuales
+  // varios no se pueden comentar (el sistema pierde todo su valor sin el comentario).
+  nuevos = nuevos.filter((c) => c.tienePostReal);
+
+  console.log(`[Prospecting] Elegidos finales: ${nuevos.length} (todos con post real)`);
 
   const totalDeEspana = nuevos.filter((c) => c.esEspana).length;
+  const totalConPost  = nuevos.filter((c) => c.tienePostReal).length;
+  const totalSinPost  = nuevos.length - totalConPost;
 
   for (const { prospecto, score } of nuevos) {
-    const postEncontrado = ultimosPosts.get(normalizeLinkedInUrl(prospecto.url));
-    const ultimoPostTexto = prospecto.ultimoPostTema || postEncontrado?.texto || null;
-    const ultimoPostUrl = postEncontrado?.url || null;
-    const urlNormalizada = normalizeLinkedInUrl(prospecto.url);
+    const urlNorm      = normalizeLinkedInUrl(prospecto.url);
+    const postScraper  = ultimosPosts.get(urlNorm);
+    // De nuevo: preferimos el texto del segundo scraper; el tema del primero solo como fallback.
+    const ultimoPostTexto = postScraper?.texto?.trim() || prospecto.ultimoPostTema?.trim() || null;
+    const ultimoPostUrl   = postScraper?.url || null;
 
     await sql`
       INSERT INTO prospectos (fecha_extraccion, nombre, url_perfil, cargo, score, dato_personalizado, ultimo_post_texto, ultimo_post_url, estado)
@@ -167,7 +205,7 @@ export async function buscarProspectosDeHoy(): Promise<ResultadoProspeccion> {
 
     await sql`
       INSERT INTO historico_urls (url_perfil)
-      VALUES (${urlNormalizada})
+      VALUES (${urlNorm})
       ON CONFLICT (url_perfil) DO NOTHING
     `;
   }
@@ -176,7 +214,7 @@ export async function buscarProspectosDeHoy(): Promise<ResultadoProspeccion> {
     await sql`DELETE FROM prospectos_import`;
   }
 
-  return { nuevos: nuevos.length, fuente, descartadosPorValidacion, deEspana: totalDeEspana };
+  return { nuevos: nuevos.length, fuente, descartadosPorValidacion, deEspana: totalDeEspana, conPost: totalConPost, sinPost: totalSinPost };
 }
 
 interface ImportRow {

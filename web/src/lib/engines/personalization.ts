@@ -3,7 +3,8 @@
  * Motor ③ — mensaje personalizado + comentario de post + audio con tu voz clonada. Procesa
  * TODOS los prospectos "Pendiente" que aún no tengan mensaje (sin límite de cantidad — el
  * mensaje de conexión es obligatorio para todos, generarlo es barato; solo el comentario de
- * post es opcional, y solo si el prospecto tiene un último post capturado).
+ * post es opcional, y solo si el prospecto tiene un último post capturado CON suficiente
+ * texto para comentar: mínimo MIN_POST_CHARS caracteres).
  *
  * El ICP no está limitado a un idioma: los perfiles pueden estar en español, inglés o
  * cualquier otro. Por eso cada prompt le pide a Claude que detecte el idioma del propio
@@ -13,9 +14,13 @@ import { ensureSchema, sql } from '../db';
 import { callClaude } from '../claude';
 import { generarAudioPersonalizado, tieneAudioHabilitado } from '../elevenlabs';
 
+// Debe coincidir con el valor en engines/prospecting.ts
+const MIN_POST_CHARS = 50;
+
 export interface ResultadoPersonalizacion {
   generados: number;
   audioDisponible: boolean;
+  conComentario: number;   // ← nuevo: cuántos generaron comentario
 }
 
 export async function personalizarMensajesYAudios(): Promise<ResultadoPersonalizacion> {
@@ -35,15 +40,30 @@ export async function personalizarMensajesYAudios(): Promise<ResultadoPersonaliz
   `;
 
   let generados = 0;
+  let conComentario = 0;
 
   for (const row of rows) {
     try {
       const ultimoPost = row.ultimo_post_texto?.trim() || null;
       const bio = row.dato_personalizado?.trim() || '';
 
+      // Solo intentamos generar el comentario si el texto del post tiene suficiente
+      // contenido. Un "tema" de 2-3 palabras del primer scraper no cuenta.
+      const postApto = ultimoPost && ultimoPost.length >= MIN_POST_CHARS;
+
       let comentarioPost: string | null = null;
-      if (ultimoPost) {
-        comentarioPost = await generarComentarioPost(row.nombre, row.cargo || '', ultimoPost);
+      if (postApto) {
+        // El comentario se genera en su propio try/catch para que un fallo de Claude
+        // no impida guardar el mensaje de conexión (que es más crítico).
+        try {
+          comentarioPost = await generarComentarioPost(row.nombre, row.cargo || '', ultimoPost!);
+          conComentario++;
+        } catch (err) {
+          console.error(`[Personalization] Error generando comentario para prospecto ${row.id}:`, err);
+          comentarioPost = null; // dejamos null, no es un error fatal
+        }
+      } else if (ultimoPost) {
+        console.warn(`[Personalization] Post de prospecto ${row.id} demasiado corto (${ultimoPost.length} chars < ${MIN_POST_CHARS}), sin comentario.`);
       }
 
       const mensaje = await generarMensajePersonalizado(row.nombre, row.cargo || '', bio, ultimoPost);
@@ -53,7 +73,7 @@ export async function personalizarMensajesYAudios(): Promise<ResultadoPersonaliz
         try {
           linkAudio = await generarAudioPersonalizado(mensaje, `${todayISO()}_${row.id}`);
         } catch (err) {
-          console.error(`Error generando audio para prospecto ${row.id}:`, err);
+          console.error(`[Personalization] Error generando audio para prospecto ${row.id}:`, err);
         }
       }
 
@@ -64,13 +84,14 @@ export async function personalizarMensajesYAudios(): Promise<ResultadoPersonaliz
       `;
       generados++;
     } catch (err) {
+      console.error(`[Personalization] Error crítico procesando prospecto ${row.id}:`, err);
       await sql`
         UPDATE prospectos SET texto_mensaje = ${`ERROR: ${(err as Error).message}`} WHERE id = ${row.id}
       `;
     }
   }
 
-  return { generados, audioDisponible };
+  return { generados, audioDisponible, conComentario };
 }
 
 const INSTRUCCION_IDIOMA = `

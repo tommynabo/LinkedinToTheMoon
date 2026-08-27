@@ -203,7 +203,7 @@ export async function buscarUltimosPosts(urls: string[]): Promise<Map<string, { 
     const items = await ejecutarActorSync(actorId, token, {
       targetUrls: urls,
       maxPosts: 1,
-      includeReposts: false,
+      includeReposts: true,
     });
 
     for (const item of items) {
