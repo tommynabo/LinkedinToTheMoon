@@ -172,14 +172,14 @@ async function buscarConMemo23(
         mode: 'public',
         keywords,
         location: ubicacionEspana,
-        maxResults: 20,
+        maxResults: 50, // Aumentado para obtener más volumen de candidatos iniciales
       })
     )
   );
 
   const resultadosResto = await Promise.all(
     [...keywordsPrincipales, ...keywordsResto].map((keywords) =>
-      ejecutarActorSync(actorId, token, { mode: 'public', keywords, maxResults: 10 })
+      ejecutarActorSync(actorId, token, { mode: 'public', keywords, maxResults: 30 }) // Aumentado para obtener más volumen
     )
   );
 

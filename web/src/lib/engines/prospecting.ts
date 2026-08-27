@@ -179,12 +179,21 @@ export async function buscarProspectosDeHoy(): Promise<ResultadoProspeccion> {
 
   let nuevos = [...elegidosEspana, ...relleno].sort((a, b) => b.score - a.score);
 
-  // Filtrado duro: SOLO aceptamos prospectos con post real.
-  // Calidad sobre cantidad: si no llegan a 25, mejor 18 buenos que 25 de los cuales
-  // varios no se pueden comentar (el sistema pierde todo su valor sin el comentario).
-  nuevos = nuevos.filter((c) => c.tienePostReal);
+  // Filtrado flexible: Priorizamos fuertemente a los que tienen post (tienen +1000 puntos de score),
+  // pero si el scraper no encuentra 25 personas con posts válidos y recientes (lo cual
+  // está pasando porque Apify indexa muchas cuentas inactivas), rellenamos el hueco
+  // con los perfiles más cualificados aunque no tengan post, para garantizar el volumen.
+  const conPost = nuevos.filter(c => c.tienePostReal);
+  const sinPost = nuevos.filter(c => !c.tienePostReal);
+  
+  if (conPost.length >= PROSPECTOS_POR_DIA) {
+    nuevos = conPost.slice(0, PROSPECTOS_POR_DIA);
+  } else {
+    const faltan = PROSPECTOS_POR_DIA - conPost.length;
+    nuevos = [...conPost, ...sinPost.slice(0, faltan)];
+  }
 
-  console.log(`[Prospecting] Elegidos finales: ${nuevos.length} (todos con post real)`);
+  console.log(`[Prospecting] Elegidos finales: ${nuevos.length} (con post real: ${conPost.length}, sin post: ${nuevos.length - conPost.length})`);
 
   const totalDeEspana = nuevos.filter((c) => c.esEspana).length;
   const totalConPost  = nuevos.filter((c) => c.tienePostReal).length;
