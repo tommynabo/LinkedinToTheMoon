@@ -248,7 +248,7 @@ async function buscarProspectosPorPosts(
   const resultados = await Promise.all(
     rotacion.map((keyword) =>
       ejecutarActorSync(actorId, token, {
-        searchQuery: keyword,
+        searchQueries: [keyword],
         maxPosts: 75, // 75 posts por keyword * 4 = 300 posts totales (~$1.50)
       })
     )
