@@ -12,6 +12,7 @@ export interface ProspectoCrudo {
   ultimoPostTema: string;
   ultimoPostFecha: string | null;
   seguidores: number | null;
+  vieneDePost?: boolean; // Indica si el prospecto se extrajo directamente de un buscador de posts
 }
 
 export interface PostRow {

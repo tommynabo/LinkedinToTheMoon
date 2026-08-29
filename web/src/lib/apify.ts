@@ -37,7 +37,11 @@ export function tieneApifyConfigurado(): boolean {
 
 /** `memo23/linkedin-people-search` usa un input distinto (mode/keywords/location single-string/maxResults). */
 function esActorMemo23(actorId: string): boolean {
-  return actorId.toLowerCase().includes('memo23');
+  return actorId.toLowerCase().includes('memo23') && !actorId.toLowerCase().includes('post');
+}
+
+function esActorDePosts(actorId: string): boolean {
+  return actorId.toLowerCase().includes('post-search') || actorId.toLowerCase().includes('posts-scraper');
 }
 
 async function ejecutarActorSync(
@@ -96,6 +100,10 @@ export async function buscarProspectosConApify(): Promise<ProspectoCrudo[]> {
   const token = process.env.APIFY_API_TOKEN;
   const actorId = process.env.APIFY_ACTOR_ID;
   if (!token || !actorId) return [];
+
+  if (esActorDePosts(actorId)) {
+    return buscarProspectosPorPosts(actorId, token);
+  }
 
   const searchQuery = process.env.APIFY_SEARCH_QUERY || SCORE_KEYWORDS.join(' OR ');
   const locationsOverride = (process.env.APIFY_LOCATIONS || '')
@@ -205,6 +213,82 @@ async function buscarConMemo23(
   );
 
   return deduplicarPorUrl([...resultadosEspana.flat(), ...resultadosResto.flat()]);
+}
+
+/**
+ * Post-Centric Scraping: Busca posts directamente usando harvestapi/linkedin-post-search
+ * Esto garantiza que el 100% de los resultados tienen un post reciente.
+ */
+async function buscarProspectosPorPosts(
+  actorId: string,
+  token: string
+): Promise<ProspectoCrudo[]> {
+  const keywordsPrincipales = process.env.APIFY_SEARCH_QUERY
+    ? process.env.APIFY_SEARCH_QUERY.split(',').map((k) => k.trim()).filter(Boolean)
+    : SCORE_KEYWORDS;
+  const keywordsResto = process.env.APIFY_SEARCH_QUERY_GLOBAL
+    ? process.env.APIFY_SEARCH_QUERY_GLOBAL.split(',').map((k) => k.trim()).filter(Boolean)
+    : ['coach online', 'consultor digital', 'growth partner', 'copywriter'];
+
+  // Rotamos keywords para no buscar todas a la vez y ahorrar costes.
+  // Como ahora buscamos posts, 100 posts de 3 keywords = 300 posts (y 300 prospectos asegurados con post).
+  const now = new Date();
+  const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 1000 / 60 / 60 / 24);
+  
+  const keywordsDisponibles = [...keywordsPrincipales, ...keywordsResto];
+  const rotacion = [
+    keywordsDisponibles[dayOfYear % keywordsDisponibles.length],
+    keywordsDisponibles[(dayOfYear + 1) % keywordsDisponibles.length],
+    keywordsDisponibles[(dayOfYear + 2) % keywordsDisponibles.length],
+    keywordsDisponibles[(dayOfYear + 3) % keywordsDisponibles.length]
+  ];
+
+  console.log(`[Apify] Post-centric rotación del día ${dayOfYear}: ${rotacion.join(', ')}`);
+
+  const resultados = await Promise.all(
+    rotacion.map((keyword) =>
+      ejecutarActorSync(actorId, token, {
+        searchQuery: keyword,
+        maxPosts: 75, // 75 posts por keyword * 4 = 300 posts totales (~$1.50)
+      })
+    )
+  );
+
+  const crudos: ProspectoCrudo[] = [];
+  const vistos = new Set<string>();
+
+  for (const item of resultados.flat()) {
+    // Apoyamos tanto harvestapi como memo23/otros
+    const author = item.author || item.authorProfile || {};
+    const url = author.linkedinUrl || author.url || item.authorUrl || item.linkedinUrl;
+    if (!url || url.includes('/company/')) continue; // ignorar posts de empresa
+
+    const clave = normalizeLinkedInUrl(url);
+    if (!clave || vistos.has(clave)) continue;
+    vistos.add(clave);
+
+    const postText = (item.text || item.content || item.postContent || '').trim();
+    let postDate = null;
+    if (typeof item.postedAt === 'object' && item.postedAt?.date) {
+      postDate = item.postedAt.date;
+    } else {
+      postDate = item.publishedAt || item.postedAt || item.date || item.publishedAtISO || null;
+    }
+
+    crudos.push({
+      nombre: author.fullName || author.name || item.authorName || '',
+      url: url,
+      cargo: author.headline || author.jobTitle || item.authorHeadline || '',
+      empresa: author.companyName || '',
+      bio: author.headline || author.about || '',
+      ultimoPostTema: postText,
+      ultimoPostFecha: postDate,
+      seguidores: author.followers || item.authorFollowers || null,
+      vieneDePost: true,
+    });
+  }
+
+  return crudos;
 }
 
 /**

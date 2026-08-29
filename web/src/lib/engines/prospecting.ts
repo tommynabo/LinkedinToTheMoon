@@ -88,11 +88,13 @@ export async function buscarProspectosDeHoy(): Promise<ResultadoProspeccion> {
     if (chunk.length === 0) return [];
     
     if (fuente === 'Apify') {
-      const urls = chunk.map(c => c.prospecto.url);
-      console.log(`[Prospecting] Buscando posts para lote de ${urls.length} perfiles...`);
-      const resultado = await buscarUltimosPosts(urls);
-      for (const [key, val] of resultado.entries()) {
-        ultimosPosts.set(key, val);
+      const urlsFaltantes = chunk.filter(c => !c.prospecto.vieneDePost).map(c => c.prospecto.url);
+      if (urlsFaltantes.length > 0) {
+        console.log(`[Prospecting] Buscando posts para lote de ${urlsFaltantes.length} perfiles...`);
+        const resultado = await buscarUltimosPosts(urlsFaltantes);
+        for (const [key, val] of resultado.entries()) {
+          ultimosPosts.set(key, val);
+        }
       }
     }
     
