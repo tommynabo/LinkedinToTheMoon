@@ -42,11 +42,13 @@ export async function buscarProspectosDeHoy(): Promise<ResultadoProspeccion> {
   
   if (recuperadosDeReserva.length > 0) {
     const ids = recuperadosDeReserva.map(r => r.id);
-    await sql`
-      UPDATE prospectos 
-      SET estado = 'Pendiente', fecha_extraccion = CURRENT_DATE 
-      WHERE id = ANY(${ids::int[]})
-    `;
+    for (const id of ids) {
+      await sql`
+        UPDATE prospectos 
+        SET estado = 'Pendiente', fecha_extraccion = CURRENT_DATE 
+        WHERE id = ${id}
+      `;
+    }
     nuevosPromovidos = ids.length;
     console.log(`[Prospecting] Promovidos ${nuevosPromovidos} prospectos desde la Reserva a Pendiente.`);
     fuente = 'Reserva';
