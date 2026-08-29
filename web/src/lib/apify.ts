@@ -285,6 +285,7 @@ async function buscarProspectosPorPosts(
       ultimoPostFecha: postDate,
       ultimoPostUrl: item.linkedinUrl || item.url || '',
       seguidores: author.followers || item.authorFollowers || null,
+      ubicacion: author.location || item.authorLocation || '',
       vieneDePost: true,
     });
   }

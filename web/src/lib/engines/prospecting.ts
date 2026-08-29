@@ -96,7 +96,7 @@ export async function buscarProspectosDeHoy(): Promise<ResultadoProspeccion> {
       prospecto: p,
       score: calcularScore(p),
       idioma: detectarIdiomaAprox(`${p.cargo} ${p.bio}`),
-      esEspana: esDeEspana(p.url, `${p.cargo} ${p.bio}`),
+      esEspana: esDeEspana(p.url, `${p.cargo} ${p.bio} ${p.ubicacion || ''}`),
       tienePostReal: false,   // ← flag explícito, se actualiza tras el scraper de posts
     }))
     // Exclusión total de portugués/brasileño, pedido explícito del ICP.
