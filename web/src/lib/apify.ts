@@ -277,7 +277,7 @@ async function buscarProspectosPorPosts(
 
     crudos.push({
       nombre: author.fullName || author.name || item.authorName || '',
-      url: url,
+      url: url.split('?')[0],
       cargo: author.headline || author.jobTitle || author.info || item.authorHeadline || '',
       empresa: author.companyName || '',
       bio: author.headline || author.about || author.info || '',
