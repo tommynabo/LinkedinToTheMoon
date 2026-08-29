@@ -18,7 +18,7 @@ const MIN_POST_CHARS = 50;
 
 export interface ResultadoProspeccion {
   nuevos: number;
-  fuente: 'Apify' | 'Import manual' | 'ninguna';
+  fuente: 'Apify' | 'Import manual' | 'Reserva' | 'Mixta' | 'ninguna';
   descartadosPorValidacion: number;
   deEspana: number;
   conPost: number;       // ← nuevo: cuántos de los guardados tienen post real
@@ -28,21 +28,59 @@ export interface ResultadoProspeccion {
 export async function buscarProspectosDeHoy(): Promise<ResultadoProspeccion> {
   await ensureSchema();
 
-  let candidatos: ProspectoCrudo[] = [];
+  // PASO 1: Comprobar el reservorio (Cola de Reserva)
+  const resultReserva = await sql`
+    SELECT id FROM prospectos 
+    WHERE estado = 'Reserva' 
+    ORDER BY score DESC, created_at ASC 
+    LIMIT ${PROSPECTOS_POR_DIA}
+  `;
+  
+  const recuperadosDeReserva = resultReserva.rows;
+  let nuevosPromovidos = 0;
   let fuente: ResultadoProspeccion['fuente'] = 'ninguna';
+  
+  if (recuperadosDeReserva.length > 0) {
+    const ids = recuperadosDeReserva.map(r => r.id);
+    await sql`
+      UPDATE prospectos 
+      SET estado = 'Pendiente', fecha_extraccion = CURRENT_DATE 
+      WHERE id = ANY(${ids::int[]})
+    `;
+    nuevosPromovidos = ids.length;
+    console.log(`[Prospecting] Promovidos ${nuevosPromovidos} prospectos desde la Reserva a Pendiente.`);
+    fuente = 'Reserva';
+  }
+
+  // Si ya hemos llenado el cupo del día con la reserva, terminamos aquí sin llamar a Apify.
+  if (nuevosPromovidos >= PROSPECTOS_POR_DIA) {
+    return { 
+      nuevos: nuevosPromovidos, 
+      fuente: 'Reserva', 
+      descartadosPorValidacion: 0, 
+      deEspana: 0, 
+      conPost: nuevosPromovidos, 
+      sinPost: 0 
+    };
+  }
+
+  const faltantes = PROSPECTOS_POR_DIA - nuevosPromovidos;
+  console.log(`[Prospecting] Faltan ${faltantes} prospectos para llegar al cupo. Buscando nuevas fuentes...`);
+
+  let candidatos: ProspectoCrudo[] = [];
 
   if (tieneApifyConfigurado()) {
     candidatos = await buscarProspectosConApify();
-    if (candidatos.length > 0) fuente = 'Apify';
+    if (candidatos.length > 0) fuente = nuevosPromovidos > 0 ? 'Mixta' : 'Apify';
   }
 
   if (candidatos.length === 0) {
     candidatos = await leerProspectosImportados();
-    if (candidatos.length > 0) fuente = 'Import manual';
+    if (candidatos.length > 0) fuente = nuevosPromovidos > 0 ? 'Mixta' : 'Import manual';
   }
 
   if (candidatos.length === 0) {
-    return { nuevos: 0, fuente: 'ninguna', descartadosPorValidacion: 0, deEspana: 0, conPost: 0, sinPost: 0 };
+    return { nuevos: nuevosPromovidos, fuente, descartadosPorValidacion: 0, deEspana: 0, conPost: nuevosPromovidos, sinPost: 0 };
   }
 
   const validos = candidatos.filter(esProspectoValido);
@@ -117,62 +155,62 @@ export async function buscarProspectosDeHoy(): Promise<ResultadoProspeccion> {
   const elegidosEspana: any[] = [];
   const chunkSize = 15;
 
-  console.log(`[Prospecting] Iniciando extracción con bucle estricto. Objetivo: ${PROSPECTOS_POR_DIA} leads.`);
+  console.log(`[Prospecting] Iniciando validación y extracción de todos los candidatos. Objetivo para hoy: ${faltantes} leads.`);
 
-  // Fase 1: Conseguir MINIMO_ESPANA_POR_DIA
-  while (elegidosEspana.length < MINIMO_ESPANA_POR_DIA && deEspanaAll.length > 0) {
-    const chunk = deEspanaAll.splice(0, chunkSize);
-    const validos = await procesarPostParaChunk(chunk);
-    elegidosEspana.push(...validos);
-  }
+  // Procesamos ABSOLUTAMENTE TODOS los candidatos válidos, porque los que sobren irán a la Reserva.
+  const queueTotal = [...deEspanaAll, ...restoAll].sort((a, b) => b.score - a.score);
+  const elegidosFinales: any[] = [];
 
-  let extraEspana: any[] = [];
-  if (elegidosEspana.length > MINIMO_ESPANA_POR_DIA) {
-    extraEspana = elegidosEspana.splice(MINIMO_ESPANA_POR_DIA);
-  }
-
-  // Fase 2: Conseguir el resto hasta PROSPECTOS_POR_DIA
-  const queueRestante = [...deEspanaAll, ...restoAll].sort((a, b) => b.score - a.score);
-  const elegidosFinales = [...elegidosEspana, ...extraEspana];
-
-  while (elegidosFinales.length < PROSPECTOS_POR_DIA && queueRestante.length > 0) {
-    const chunk = queueRestante.splice(0, chunkSize);
+  while (queueTotal.length > 0) {
+    const chunk = queueTotal.splice(0, chunkSize);
     const validos = await procesarPostParaChunk(chunk);
     elegidosFinales.push(...validos);
   }
 
-  const nuevos = elegidosFinales.slice(0, PROSPECTOS_POR_DIA).sort((a, b) => b.score - a.score);
-  console.log(`[Prospecting] Elegidos finales: ${nuevos.length} (todos con post real)`);
+  const nuevosPendientes = elegidosFinales.slice(0, faltantes).sort((a, b) => b.score - a.score);
+  const paraReserva = elegidosFinales.slice(faltantes).sort((a, b) => b.score - a.score);
 
-  const totalDeEspana = nuevos.filter((c) => c.esEspana).length;
-  const totalConPost  = nuevos.filter((c) => c.tienePostReal).length;
-  const totalSinPost  = nuevos.length - totalConPost;
+  console.log(`[Prospecting] Elegidos finales: ${nuevosPendientes.length} para hoy, y ${paraReserva.length} enviados a la Cola de Reserva.`);
 
-  for (const { prospecto, score } of nuevos) {
-    const urlNorm      = normalizeLinkedInUrl(prospecto.url);
-    const postScraper  = ultimosPosts.get(urlNorm);
-    // De nuevo: preferimos el texto del segundo scraper; el tema del primero solo como fallback.
-    const ultimoPostTexto = postScraper?.texto?.trim() || prospecto.ultimoPostTema?.trim() || null;
-    const ultimoPostUrl   = postScraper?.url || null;
+  const insertarProspectos = async (items: any[], estado: string) => {
+    for (const { prospecto, score } of items) {
+      const urlNorm      = normalizeLinkedInUrl(prospecto.url);
+      const postScraper  = ultimosPosts.get(urlNorm);
+      const ultimoPostTexto = postScraper?.texto?.trim() || prospecto.ultimoPostTema?.trim() || null;
+      const ultimoPostUrl   = postScraper?.url || null;
 
-    await sql`
-      INSERT INTO prospectos (fecha_extraccion, nombre, url_perfil, cargo, score, dato_personalizado, ultimo_post_texto, ultimo_post_url, estado)
-      VALUES (CURRENT_DATE, ${prospecto.nombre}, ${prospecto.url}, ${prospecto.cargo}, ${score},
-              ${prospecto.bio || null}, ${ultimoPostTexto}, ${ultimoPostUrl}, 'Pendiente')
-    `;
+      await sql`
+        INSERT INTO prospectos (fecha_extraccion, nombre, url_perfil, cargo, score, dato_personalizado, ultimo_post_texto, ultimo_post_url, estado)
+        VALUES (CURRENT_DATE, ${prospecto.nombre}, ${prospecto.url}, ${prospecto.cargo}, ${score},
+                ${prospecto.bio || null}, ${ultimoPostTexto}, ${ultimoPostUrl}, ${estado})
+      `;
 
-    await sql`
-      INSERT INTO historico_urls (url_perfil)
-      VALUES (${urlNorm})
-      ON CONFLICT (url_perfil) DO NOTHING
-    `;
-  }
+      await sql`
+        INSERT INTO historico_urls (url_perfil)
+        VALUES (${urlNorm})
+        ON CONFLICT (url_perfil) DO NOTHING
+      `;
+    }
+  };
 
-  if (fuente === 'Import manual') {
+  await insertarProspectos(nuevosPendientes, 'Pendiente');
+  await insertarProspectos(paraReserva, 'Reserva');
+
+  if (fuente === 'Import manual' || fuente === 'Mixta') {
     await sql`DELETE FROM prospectos_import`;
   }
 
-  return { nuevos: nuevos.length, fuente, descartadosPorValidacion, deEspana: totalDeEspana, conPost: totalConPost, sinPost: totalSinPost };
+  const totalNuevosHoy = nuevosPromovidos + nuevosPendientes.length;
+  const totalConPost = nuevosPendientes.filter((c) => c.tienePostReal).length + nuevosPromovidos;
+  
+  return { 
+    nuevos: totalNuevosHoy, 
+    fuente, 
+    descartadosPorValidacion, 
+    deEspana: nuevosPendientes.filter((c) => c.esEspana).length, 
+    conPost: totalConPost, 
+    sinPost: totalNuevosHoy - totalConPost 
+  };
 }
 
 interface ImportRow {
