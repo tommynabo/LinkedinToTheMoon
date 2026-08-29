@@ -112,7 +112,7 @@ export async function buscarProspectosDeHoy(): Promise<ResultadoProspeccion> {
     return validos.sort((a, b) => b.score - a.score);
   }
 
-  const elegidosEspana = [];
+  const elegidosEspana: any[] = [];
   const chunkSize = 15;
 
   console.log(`[Prospecting] Iniciando extracción con bucle estricto. Objetivo: ${PROSPECTOS_POR_DIA} leads.`);
@@ -124,7 +124,7 @@ export async function buscarProspectosDeHoy(): Promise<ResultadoProspeccion> {
     elegidosEspana.push(...validos);
   }
 
-  let extraEspana = [];
+  let extraEspana: any[] = [];
   if (elegidosEspana.length > MINIMO_ESPANA_POR_DIA) {
     extraEspana = elegidosEspana.splice(MINIMO_ESPANA_POR_DIA);
   }

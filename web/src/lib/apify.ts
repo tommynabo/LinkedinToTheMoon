@@ -166,20 +166,41 @@ async function buscarConMemo23(
     : ['coach online', 'consultor digital', 'growth partner', 'copywriter'];
   const ubicacionEspana = locationsOverride[0] || UBICACION_PRIORITARIA;
 
+  // Optimización de créditos: Usamos el día del año para rotar palabras clave y no buscar todas a la vez
+  const now = new Date();
+  const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 1000 / 60 / 60 / 24);
+  
+  // Elegimos 2 keywords principales para España y 1 para global basándonos en el día
+  const rotacionEspana = [
+    keywordsPrincipales[dayOfYear % keywordsPrincipales.length],
+    keywordsPrincipales[(dayOfYear + 1) % keywordsPrincipales.length]
+  ];
+  
+  const keywordsDisponiblesResto = [...keywordsPrincipales, ...keywordsResto];
+  const rotacionResto = [
+    keywordsDisponiblesResto[dayOfYear % keywordsDisponiblesResto.length]
+  ];
+
+  console.log(`[Apify] Rotación del día ${dayOfYear}: España -> ${rotacionEspana.join(', ')} | Global -> ${rotacionResto.join(', ')}`);
+
   const resultadosEspana = await Promise.all(
-    keywordsPrincipales.map((keywords) =>
+    rotacionEspana.map((keywords) =>
       ejecutarActorSync(actorId, token, {
         mode: 'public',
         keywords,
         location: ubicacionEspana,
-        maxResults: 50, // Aumentado para obtener más volumen de candidatos iniciales
+        maxResults: 100, // Límite incrementado temporalmente para asegurar volumen
       })
     )
   );
 
   const resultadosResto = await Promise.all(
-    [...keywordsPrincipales, ...keywordsResto].map((keywords) =>
-      ejecutarActorSync(actorId, token, { mode: 'public', keywords, maxResults: 30 }) // Aumentado para obtener más volumen
+    rotacionResto.map((keywords) =>
+      ejecutarActorSync(actorId, token, { 
+        mode: 'public', 
+        keywords, 
+        maxResults: 100 // Límite incrementado
+      }) 
     )
   );
 
