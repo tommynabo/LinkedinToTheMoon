@@ -283,6 +283,7 @@ async function buscarProspectosPorPosts(
       bio: author.headline || author.about || author.info || '',
       ultimoPostTema: postText,
       ultimoPostFecha: postDate,
+      ultimoPostUrl: item.linkedinUrl || item.url || '',
       seguidores: author.followers || item.authorFollowers || null,
       vieneDePost: true,
     });

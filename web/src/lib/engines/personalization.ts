@@ -95,9 +95,10 @@ export async function personalizarMensajesYAudios(): Promise<ResultadoPersonaliz
 }
 
 const INSTRUCCION_IDIOMA = `
-Detecta el idioma en el que está escrito el perfil (el texto de referencia que te paso abajo:
-su cargo, su post o su bio). Responde ÍNTEGRAMENTE en ese mismo idioma (puede ser español,
-inglés o cualquier otro) — nunca traduzcas ni cambies de idioma.
+CRÍTICO: El idioma de tu respuesta (tanto el mensaje como el comentario) DEBE SER EXACTAMENTE EL MISMO en el que está escrito el texto de referencia.
+- Si el perfil o el post está en ESPAÑOL, debes escribir en ESPAÑOL.
+- Si está en INGLÉS, debes escribir en INGLÉS.
+No te confundas por el hecho de que su cargo pueda incluir palabras en inglés como "Growth Partner" si el resto del texto está en español. Nunca traduzcas al inglés si la persona claramente habla español.
 `.trim();
 
 // Excepción SOLO para el comentario de post (no para el mensaje de conexión): si el idioma

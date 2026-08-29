@@ -167,8 +167,25 @@ export async function buscarProspectosDeHoy(): Promise<ResultadoProspeccion> {
     elegidosFinales.push(...validos);
   }
 
-  const nuevosPendientes = elegidosFinales.slice(0, faltantes).sort((a, b) => b.score - a.score);
-  const paraReserva = elegidosFinales.slice(faltantes).sort((a, b) => b.score - a.score);
+  const deEspanaValidos = elegidosFinales.filter((c) => c.esEspana).sort((a, b) => b.score - a.score);
+  const restoValidos = elegidosFinales.filter((c) => !c.esEspana).sort((a, b) => b.score - a.score);
+
+  // Intentamos asegurar la cuota de España
+  const objetivoEspana = Math.min(faltantes, MINIMO_ESPANA_POR_DIA);
+  const espanaParaHoy = deEspanaValidos.splice(0, objetivoEspana);
+
+  // Rellenamos el resto de faltantes con resto (USA/UK, etc.)
+  let faltanAun = faltantes - espanaParaHoy.length;
+  const restoParaHoy = restoValidos.splice(0, faltanAun);
+
+  // Si aun nos faltan porque no había suficiente resto, rellenamos con más de España
+  faltanAun = faltantes - (espanaParaHoy.length + restoParaHoy.length);
+  if (faltanAun > 0 && deEspanaValidos.length > 0) {
+    espanaParaHoy.push(...deEspanaValidos.splice(0, faltanAun));
+  }
+
+  const nuevosPendientes = [...espanaParaHoy, ...restoParaHoy].sort((a, b) => b.score - a.score);
+  const paraReserva = [...deEspanaValidos, ...restoValidos].sort((a, b) => b.score - a.score);
 
   console.log(`[Prospecting] Elegidos finales: ${nuevosPendientes.length} para hoy, y ${paraReserva.length} enviados a la Cola de Reserva.`);
 
@@ -177,7 +194,7 @@ export async function buscarProspectosDeHoy(): Promise<ResultadoProspeccion> {
       const urlNorm      = normalizeLinkedInUrl(prospecto.url);
       const postScraper  = ultimosPosts.get(urlNorm);
       const ultimoPostTexto = postScraper?.texto?.trim() || prospecto.ultimoPostTema?.trim() || null;
-      const ultimoPostUrl   = postScraper?.url || null;
+      const ultimoPostUrl   = postScraper?.url || prospecto.ultimoPostUrl || null;
 
       await sql`
         INSERT INTO prospectos (fecha_extraccion, nombre, url_perfil, cargo, score, dato_personalizado, ultimo_post_texto, ultimo_post_url, estado)
