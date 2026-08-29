@@ -278,9 +278,9 @@ async function buscarProspectosPorPosts(
     crudos.push({
       nombre: author.fullName || author.name || item.authorName || '',
       url: url,
-      cargo: author.headline || author.jobTitle || item.authorHeadline || '',
+      cargo: author.headline || author.jobTitle || author.info || item.authorHeadline || '',
       empresa: author.companyName || '',
-      bio: author.headline || author.about || '',
+      bio: author.headline || author.about || author.info || '',
       ultimoPostTema: postText,
       ultimoPostFecha: postDate,
       seguidores: author.followers || item.authorFollowers || null,
