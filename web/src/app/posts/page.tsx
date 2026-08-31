@@ -1,6 +1,7 @@
 import { getPosts } from '@/lib/queries';
 import { deletePostAction, updatePostRow } from '@/lib/actions';
 import { DeleteButton } from './DeleteButton';
+import { CopyButton } from './CopyButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,8 +19,8 @@ export default async function PostsPage() {
     <>
       <h1>Posts</h1>
       <p className="subtitle">
-        Cada mañana el autopiloto deja aquí un borrador (3 hooks + desarrollo + imagen opcional).
-        Elige el hook que más te convenza, publícalo tú mismo en LinkedIn y marca el estado.
+        Cada mañana el autopiloto deja aquí un borrador listo para copiar y pegar en LinkedIn.
+        Revísalo, cópialo con el botón y márcalo como publicado cuando lo subas.
       </p>
 
       <div className="table-wrap">
@@ -28,10 +29,7 @@ export default async function PostsPage() {
             <tr>
               <th>Fecha</th>
               <th>Pilar</th>
-              <th>Hook A</th>
-              <th>Hook B</th>
-              <th>Hook C</th>
-              <th>Desarrollo</th>
+              <th>Post completo</th>
               <th>Imagen</th>
               <th>Estado / Link / Métricas</th>
             </tr>
@@ -41,10 +39,18 @@ export default async function PostsPage() {
               <tr key={post.id}>
                 <td>{new Date(post.fecha).toLocaleDateString('es-ES')}</td>
                 <td>{post.pilar}</td>
-                <td>{post.hook_a}</td>
-                <td>{post.hook_b}</td>
-                <td>{post.hook_c}</td>
-                <td style={{ whiteSpace: 'pre-wrap', minWidth: 280 }}>{post.desarrollo}</td>
+                <td style={{ minWidth: 380 }}>
+                  <pre style={{
+                    whiteSpace: 'pre-wrap',
+                    fontFamily: 'inherit',
+                    fontSize: 14,
+                    lineHeight: 1.6,
+                    margin: 0,
+                  }}>
+                    {post.desarrollo}
+                  </pre>
+                  <CopyButton text={post.desarrollo ?? ''} />
+                </td>
                 <td>
                   {post.imagen_url ? (
                     <a href={post.imagen_url} target="_blank" rel="noreferrer">
@@ -80,7 +86,7 @@ export default async function PostsPage() {
             ))}
             {posts.length === 0 && (
               <tr>
-                <td colSpan={8} className="muted">
+                <td colSpan={5} className="muted">
                   Todavía no hay posts generados.
                 </td>
               </tr>

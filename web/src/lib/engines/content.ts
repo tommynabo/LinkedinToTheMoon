@@ -133,25 +133,40 @@ Usa como referencia el TONO de estos posts anteriores, PERO IGNORA SU FORMATO (d
 ${ejemplosTexto}
 
 REGLAS ESTRICTAS PARA EL POST:
-- Un post = Una idea. PROHIBIDO hablar de "agentes de Instagram que responden DMs", "recuperar horas de tu día", "bots de WhatsApp" o "ahorrar tiempo". Evita temas genéricos o predicciones vagas.
-- Enfócate en problemas concretos y demuestra autoridad (Proof of Work): casos reales, métricas, arquitecturas de datos, procesos paso a paso o experimentos (ej. "Automatizamos X y pasó Y", "Si tuviera que automatizar X, haría esto").
-- Estructura obligatoria para el "desarrollo":
-  1. Contexto: Qué está ocurriendo y por qué debería importarle al lector.
-  2. Valor / Prueba: El "Proof of Work" (un proceso, caso real, dato, ejemplo o framework) que demuestra que sabemos hacer el trabajo.
-  3. Takeaway: La idea que el lector debería recordar o aplicar (Mensaje impactante final).
-- Nada de preguntas de gurú ("¿Qué opinas?"). Usa CTAs de baja fricción si es necesario.
-- FORMATO VISUAL OBLIGATORIO: Frases MUY cortas (estilo "broetry"). Separa CADA frase con un DOBLE salto de línea (\n\n) para crear párrafos independientes de 1 sola línea. Esto es crítico para facilitar la lectura rápida en móvil. Sin jerga corporativa, 0% emojis.
-- PROHIBIDO usar guiones (como "-", "—" o "–") en el texto. Usa comas o puntos para separar frases.
+- Un post = Una idea. PROHIBIDO hablar de "agentes de Instagram", "bots de WhatsApp" o "ahorrar tiempo".
+- Enfócate en problemas concretos y demuestra autoridad: casos reales, métricas, arquitecturas, procesos paso a paso.
+- El post debe incluir: Hook (primera línea que para el scroll) + Cuerpo (Contexto, Proof of Work, Takeaway) + CTA.
+- FORMATO BROETRY OBLIGATORIO: cada frase en su propia línea, separada por UNA línea en blanco del resto. Sin párrafos largos. Sin bloques de texto. Igual que el ejemplo de abajo:
 
-Genera:
-- 3 hooks alternativos (máx 12 palabras cada uno, específicos: con números, situaciones o tensiones reales)
-- 1 desarrollo de 80-130 palabras (Contexto + Valor/Prueba + Takeaway; ritmo rápido, demostrando experiencia concreta)
-- 1 CTA final (directo y de baja fricción, o invitando a ver la arquitectura por DM)
+---EJEMPLO DE FORMATO CORRECTO---
+Contacté a 200 personas en LinkedIn en 2 semanas.
+
+Solo 8 respondieron.
+
+El problema no era el volumen.
+
+Era que mandaba el mismo mensaje a todos.
+
+Esto cambió cuando empecé a cruzar datos de actividad reciente con señales de intención de compra.
+
+Primera semana: ratio de respuesta del 1,8%.
+
+Tercera semana: 9,2% de respuestas cualificadas.
+
+No cambié el canal.
+
+Cambié la inteligencia detrás del mensaje.
+
+Si quieres ver cómo funciona la arquitectura, escríbeme por DM.
+---FIN DEL EJEMPLO---
+
+- PROHIBIDO: párrafos largos, bloques de más de 2 líneas seguidas, guiones como "-" o "—", emojis, preguntas de gurú ("¿Qué opinas?").
 
 Responde ÚNICAMENTE con un objeto JSON con esta forma exacta, sin texto adicional:
-{"hookA": "...", "hookB": "...", "hookC": "...", "desarrollo": "...", "cta": "..."}
+{"hookA": "primera frase del post (el hook, máx 12 palabras)", "hookB": "alternativa de hook 2", "hookC": "alternativa de hook 3", "desarrollo": "POST COMPLETO en formato broetry: hook elegido + cuerpo + CTA, con cada frase separada por línea en blanco", "cta": "CTA final aislado"}
 `.trim();
 }
+
 
 function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
