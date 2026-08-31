@@ -129,7 +129,7 @@ ${ideaTexto}
 
 ${temasRecientesTexto}
 
-Usa como referencia de estilo estos posts anteriores:
+Usa como referencia el TONO de estos posts anteriores, PERO IGNORA SU FORMATO (debes usar el nuevo formato de frases separadas indicado abajo):
 ${ejemplosTexto}
 
 REGLAS ESTRICTAS PARA EL POST:
