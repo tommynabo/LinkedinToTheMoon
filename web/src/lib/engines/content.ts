@@ -133,20 +133,20 @@ Usa como referencia de estilo estos posts anteriores:
 ${ejemplosTexto}
 
 REGLAS ESTRICTAS PARA EL POST:
-- PROHIBIDO hablar de "agentes de Instagram que responden DMs", "recuperar horas de tu día", "bots de WhatsApp" o "ahorrar tiempo".
-- Enfócate en SISTEMAS DE PROSPECCIÓN CONCRETOS, arquitecturas de datos, superación de cuellos de botella de volumen y calidad/hiper-personalización algorítmica.
-- Estructura obligatoria:
-  1. Hook/Lectura fría (sobre el miedo profundo o el desorden de los sistemas actuales).
-  2. Desarrollo dinámico y al grano (narrativa fácil de seguir, líneas rápidas, demostrando autoridad).
-  3. Mensaje impactante final (diferencia entre automatización mediocre vs arquitectura sólida).
-- Nada de preguntas de gurú ("¿Qué opinas?", "¿Cuántas horas ahorras?"). 
+- Un post = Una idea. PROHIBIDO hablar de "agentes de Instagram que responden DMs", "recuperar horas de tu día", "bots de WhatsApp" o "ahorrar tiempo". Evita temas genéricos o predicciones vagas.
+- Enfócate en problemas concretos y demuestra autoridad (Proof of Work): casos reales, métricas, arquitecturas de datos, procesos paso a paso o experimentos (ej. "Automatizamos X y pasó Y", "Si tuviera que automatizar X, haría esto").
+- Estructura obligatoria para el "desarrollo":
+  1. Contexto: Qué está ocurriendo y por qué debería importarle al lector.
+  2. Valor / Prueba: El "Proof of Work" (un proceso, caso real, dato, ejemplo o framework) que demuestra que sabemos hacer el trabajo.
+  3. Takeaway: La idea que el lector debería recordar o aplicar (Mensaje impactante final).
+- Nada de preguntas de gurú ("¿Qué opinas?"). Usa CTAs de baja fricción si es necesario.
 - Frases MUY cortas y rápidas, un salto de línea cada frase para que sea dinámico de leer, sin jerga corporativa, 0% emojis.
 - PROHIBIDO usar guiones (como "-", "—" o "–") en el texto. Usa comas o puntos para separar frases.
 
 Genera:
-- 3 hooks alternativos (máx 12 palabras cada uno, súper directos y al grano)
-- 1 desarrollo CORTO de 60-100 palabras (ritmo rápido, dinámico e impactante)
-- 1 CTA final (directo, ofreciendo mostrar arquitectura o invitando por DM, de forma aséptica)
+- 3 hooks alternativos (máx 12 palabras cada uno, específicos: con números, situaciones o tensiones reales)
+- 1 desarrollo de 80-130 palabras (Contexto + Valor/Prueba + Takeaway; ritmo rápido, demostrando experiencia concreta)
+- 1 CTA final (directo y de baja fricción, o invitando a ver la arquitectura por DM)
 
 Responde ÚNICAMENTE con un objeto JSON con esta forma exacta, sin texto adicional:
 {"hookA": "...", "hookB": "...", "hookC": "...", "desarrollo": "...", "cta": "..."}

@@ -165,16 +165,16 @@ Usa como referencia de estilo estos posts anteriores que funcionaron bien:
 ${ejemplosTexto}
 
 REGLAS ESTRICTAS PARA EL POST:
-- PROHIBIDO hablar de "agentes de Instagram que responden DMs", "recuperar horas de tu día", "bots de WhatsApp" o "ahorrar tiempo".
-- Enfócate en SISTEMAS DE PROSPECCIÓN CONCRETOS, arquitecturas de datos, superación de cuellos de botella de volumen y calidad/hiper-personalización algorítmica.
-- Estructura obligatoria:
-  1. Hook/Lectura fría (sobre el miedo profundo o el desorden de los sistemas actuales). Máximo 15 palabras.
-  2. Salto de línea como pausa obligatoria.
-  3. Autoridad sin vacilar (Desarrollo): Afirmaciones directas, verbos en presente, frases cortas de 1-2 líneas. CERO condicionales. Una idea por párrafo.
-  4. Calidez (Final del desarrollo): Una frase que te humanice justo después del dato técnico duro.
-  5. CTA final: Directo, ofreciendo mostrar arquitectura o invitando por DM, de forma aséptica.
+- Un post = Una idea. PROHIBIDO hablar de "agentes de Instagram que responden DMs", "recuperar horas de tu día", "bots de WhatsApp" o "ahorrar tiempo". Evita temas genéricos.
+- Enfócate en problemas concretos y demuestra autoridad (Proof of Work): casos reales, métricas, arquitecturas de datos, procesos paso a paso o experimentos (ej. "Automatizamos X y pasó Y").
+- Estructura obligatoria para el "desarrollo":
+  1. Contexto: Qué está ocurriendo y por qué debería importarle al lector.
+  2. Valor / Prueba: El "Proof of Work" (un proceso, caso real, dato, ejemplo o framework) que demuestra que sabemos hacer el trabajo. CERO condicionales. Verbos en presente, autoridad sin vacilar.
+  3. Takeaway: La idea que el lector debería recordar o aplicar (Mensaje impactante final).
+- Nada de preguntas de gurú ("¿Qué opinas?").
+- CTA final: Directo y de baja fricción, o invitando a ver la arquitectura por DM.
 
 Responde ÚNICAMENTE con un objeto JSON con esta forma exacta, sin texto adicional:
-{"hookA": "Primera opción de primera línea...", "hookB": "Segunda opción...", "hookC": "Tercera opción...", "desarrollo": "Cuerpo del post (sin el hook, empezando directamente con la autoridad...)", "cta": "CTA final"}
+{"hookA": "Primera opción (específica: con números o tensión real)...", "hookB": "Segunda opción...", "hookC": "Tercera opción...", "desarrollo": "Cuerpo del post (Contexto + Valor/Prueba + Takeaway; sin el hook...)", "cta": "CTA final"}
 `.trim();
 }
