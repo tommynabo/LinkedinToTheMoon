@@ -172,6 +172,7 @@ REGLAS ESTRICTAS PARA EL POST:
   2. Valor / Prueba: El "Proof of Work" (un proceso, caso real, dato, ejemplo o framework) que demuestra que sabemos hacer el trabajo. CERO condicionales. Verbos en presente, autoridad sin vacilar.
   3. Takeaway: La idea que el lector debería recordar o aplicar (Mensaje impactante final).
 - Nada de preguntas de gurú ("¿Qué opinas?").
+- FORMATO VISUAL OBLIGATORIO: Frases MUY cortas (estilo "broetry"). Separa CADA frase con un DOBLE salto de línea (\n\n) para crear párrafos independientes de 1 sola línea. Esto es crítico para facilitar la lectura rápida en móvil. Sin jerga corporativa, 0% emojis.
 - CTA final: Directo y de baja fricción, o invitando a ver la arquitectura por DM.
 
 Responde ÚNICAMENTE con un objeto JSON con esta forma exacta, sin texto adicional:

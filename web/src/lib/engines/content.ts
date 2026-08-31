@@ -140,7 +140,7 @@ REGLAS ESTRICTAS PARA EL POST:
   2. Valor / Prueba: El "Proof of Work" (un proceso, caso real, dato, ejemplo o framework) que demuestra que sabemos hacer el trabajo.
   3. Takeaway: La idea que el lector debería recordar o aplicar (Mensaje impactante final).
 - Nada de preguntas de gurú ("¿Qué opinas?"). Usa CTAs de baja fricción si es necesario.
-- Frases MUY cortas y rápidas, un salto de línea cada frase para que sea dinámico de leer, sin jerga corporativa, 0% emojis.
+- FORMATO VISUAL OBLIGATORIO: Frases MUY cortas (estilo "broetry"). Separa CADA frase con un DOBLE salto de línea (\n\n) para crear párrafos independientes de 1 sola línea. Esto es crítico para facilitar la lectura rápida en móvil. Sin jerga corporativa, 0% emojis.
 - PROHIBIDO usar guiones (como "-", "—" o "–") en el texto. Usa comas o puntos para separar frases.
 
 Genera:
