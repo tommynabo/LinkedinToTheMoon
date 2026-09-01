@@ -8,6 +8,7 @@ import { revalidatePath } from 'next/cache';
 import { ensureSchema, sql } from './db';
 import { ejecutarRutinaDiaria } from './engines/daily';
 import { archivarProspectosProcesados } from './engines/prospecting';
+import { regenerarMensajesExistentes } from './engines/personalization';
 
 export async function updateProspectoEstado(formData: FormData): Promise<void> {
   await ensureSchema();
@@ -118,5 +119,14 @@ export async function runNowAction(): Promise<void> {
   await ejecutarRutinaDiaria(process.env.PUBLIC_APP_URL || 'https://vercel.com');
   revalidatePath('/');
   revalidatePath('/posts');
+  revalidatePath('/prospectos');
+}
+
+/**
+ * Regenera los mensajes de conexión de todos los prospectos en estado Pendiente y Comentado
+ * con el nuevo formato de frases cortas separadas en párrafos (broetry).
+ */
+export async function regenerarMensajesPendientesAction(): Promise<void> {
+  await regenerarMensajesExistentes();
   revalidatePath('/prospectos');
 }

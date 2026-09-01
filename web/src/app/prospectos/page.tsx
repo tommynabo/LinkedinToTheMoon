@@ -1,6 +1,6 @@
 import { getProspectos, getCrm } from '@/lib/queries';
 import type { ProspectoRow } from '@/lib/types';
-import { archivarEnviadosAction, deleteProspectoAction, updateProspectoEstado } from '@/lib/actions';
+import { archivarEnviadosAction, deleteProspectoAction, updateProspectoEstado, regenerarMensajesPendientesAction } from '@/lib/actions';
 import { CopyButton } from './CopyButton';
 import { DeleteButton } from './DeleteButton';
 import { EstadoSelect } from './EstadoSelect';
@@ -49,6 +49,12 @@ export default async function ProspectosPage({
 
       <form action={archivarEnviadosAction} style={{ marginBottom: 16 }}>
         <button type="submit">📤 Mover Enviados/Descartados al CRM</button>
+      </form>
+
+      <form action={regenerarMensajesPendientesAction} style={{ marginBottom: 16 }}>
+        <button type="submit" style={{ background: 'var(--accent, #6366f1)', color: '#fff' }}>
+          🔄 Regenerar mensajes (Pendiente + Comentado)
+        </button>
       </form>
 
       <div className="filtros-estado">

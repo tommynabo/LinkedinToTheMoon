@@ -167,7 +167,7 @@ export async function generarMensajePersonalizado(
 ${INSTRUCCION_IDIOMA}
 ${INSTRUCCION_TONO}
 
-Genera un mensaje de conexión de LinkedIn de máximo 3-4 frases para ${nombre}, ${cargo}.
+Genera un mensaje de conexión de LinkedIn para ${nombre}, ${cargo}.
 
 ${referencia}
 
@@ -176,14 +176,29 @@ notarse que el mensaje es solo para ella/él, no una plantilla genérica. Evita 
 igual (nada de "me quedé pensando en tu post sobre..." como fórmula fija); busca un enfoque
 distinto cada vez, el que mejor encaje.
 
-Ve directo al grano a vender. Nada de preguntas, rodeos ni falsas simpatías. 
+Ve directo al grano a vender. Nada de preguntas, rodeos ni falsas simpatías.
 El objetivo es ofrecer nuestros sistemas de prospección B2B y arquitectura de datos de forma clara y directa en este primer mensaje. Haz un pitch corto y contundente.
 PROHIBIDO usar guiones (como "-", "—" o "–") en el texto. Usa comas o puntos en su lugar.
 
-Responde ÚNICAMENTE con el texto del mensaje, sin comillas ni explicaciones adicionales.
+FORMATO OBLIGATORIO: escribe cada frase en su propia línea, separada por UNA línea en blanco
+de la siguiente. Sin párrafos largos. Sin bloques de texto. Igual que este ejemplo:
+
+---EJEMPLO DE FORMATO CORRECTO---
+Vi tu post sobre escalabilidad en SaaS.
+
+Lo que haces con los datos de actividad es exactamente lo que necesitan la mayoría de founders para no desperdiciar su pipeline.
+
+Nosotros construimos sistemas de prospección B2B con arquitectura de datos que hacen esto automático, a escala.
+
+¿Conectamos?
+---FIN DEL EJEMPLO---
+
+Máximo 4 frases en total. Que quepa en un mensaje de conexión de LinkedIn (300 caracteres máximo en total).
+
+Responde ÚNICAMENTE con el texto del mensaje en ese formato, sin comillas ni explicaciones adicionales.
 `.trim();
 
-  const texto = await callClaude(prompt, 300);
+  const texto = await callClaude(prompt, 400);
   return texto.trim();
 }
 
@@ -191,3 +206,39 @@ function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+/**
+ * Regenera el texto_mensaje de TODOS los prospectos en estado 'Pendiente' o 'Comentado'
+ * que ya tenían un mensaje (es decir, los que hay ahora mismo en esas columnas).
+ * Útil para aplicar un nuevo formato de escritura a mensajes ya generados.
+ */
+export async function regenerarMensajesExistentes(): Promise<{ regenerados: number }> {
+  await ensureSchema();
+
+  const { rows } = await sql<{
+    id: number;
+    nombre: string;
+    cargo: string | null;
+    dato_personalizado: string | null;
+    ultimo_post_texto: string | null;
+  }>`
+    SELECT id, nombre, cargo, dato_personalizado, ultimo_post_texto FROM prospectos
+    WHERE estado IN ('Pendiente', 'Comentado')
+    ORDER BY score DESC, id ASC
+  `;
+
+  let regenerados = 0;
+
+  for (const row of rows) {
+    try {
+      const ultimoPost = row.ultimo_post_texto?.trim() || null;
+      const bio = row.dato_personalizado?.trim() || '';
+      const mensaje = await generarMensajePersonalizado(row.nombre, row.cargo || '', bio, ultimoPost);
+      await sql`UPDATE prospectos SET texto_mensaje = ${mensaje} WHERE id = ${row.id}`;
+      regenerados++;
+    } catch (err) {
+      console.error(`[Personalization] Error regenerando mensaje para prospecto ${row.id}:`, err);
+    }
+  }
+
+  return { regenerados };
+}
