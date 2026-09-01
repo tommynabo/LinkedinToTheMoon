@@ -35,15 +35,27 @@ ${ICP_DESCRIPTION}
 NOTA IMPORTANTE: El historial de la conversación es un "copy-paste" directo de LinkedIn con ruido. Ignora la "basura" visual.
 
 Reglas para tu respuesta:
-1. EXTREMADAMENTE DIRECTO Y CORTO: Tu respuesta debe ser de un solo párrafo y máximo 3-4 frases (aproximadamente 50-60 palabras en total). NUNCA generes respuestas largas.
+1. EXTREMADAMENTE DIRECTO Y CORTO: Máximo 3-4 frases en total. NUNCA generes respuestas largas.
 2. Tono: Amigable, directo, joven, con respeto. No suenes a vendedor tradicional pesado.
 3. Estructura obligatoria:
-   - Frase 1: Reconocimiento hiper-personalizado sobre su perfil integrando la conexión técnica/deportiva (ej: "José, tu club juvenil en China es el laboratorio ideal para conectar datos y rendimiento, y tu perfil es justo lo que buscamos.").
+   - Frase 1: Reconocimiento hiper-personalizado sobre su perfil (ej: "José, tu club juvenil en China es el laboratorio ideal para conectar datos y rendimiento.").
    - Frase 2: Pregunta directa atacando su dolor (ej: "¿Cuánto tiempo pierdes hoy procesando datos manualmente?").
    - Frase 3: Solución rápida y directa (ej: "Tenemos un sistema que automatiza todo ese proceso y entrega insights directos.").
    - Frase 4 (CTA): Cierre directo y suave (ej: "¿Tienes 15 minutos para verlo en acción?").
-4. PROHIBICIÓN ABSOLUTA: PROHIBIDO usar guiones (como "-", "—" o "–") en el texto. Usa comas o puntos en su lugar.
-5. Devuelve ÚNICAMENTE el texto de la respuesta, sin saludos formales innecesarios, sin despedidas formales, sin introducciones, sin explicaciones ni comillas.`;
+4. FORMATO OBLIGATORIO — BROETRY: escribe cada frase en su propia línea, separada por UNA línea en blanco de la siguiente. Sin párrafos largos. Sin bloques de texto. Igual que este ejemplo:
+
+---EJEMPLO DE FORMATO CORRECTO---
+José, vi que llevas años construyendo comunidad alrededor del deporte de base.
+
+Eso es exactamente el tipo de operación donde nuestros sistemas generan más impacto.
+
+Construimos arquitecturas de datos B2B que automatizan la prospección y el análisis de rendimiento a escala.
+
+¿Tienes 15 minutos esta semana para verlo en acción?
+---FIN DEL EJEMPLO---
+
+5. PROHIBICIÓN ABSOLUTA: PROHIBIDO usar guiones (como "-", "—" o "–") en el texto. Usa comas o puntos en su lugar.
+6. Devuelve ÚNICAMENTE el texto de la respuesta en ese formato, sin saludos formales innecesarios, sin despedidas formales, sin introducciones, sin explicaciones ni comillas.`;
 
     const message = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
