@@ -1,11 +1,14 @@
 /**
  * /api/regenerar-mensajes
- * Endpoint temporal para regenerar todos los mensajes de conexión de prospectos
- * en estado Pendiente y Comentado con el nuevo formato broetry.
+ * Endpoint para regenerar mensajes de conexión Y comentarios de post de todos los
+ * prospectos en estado Pendiente y Comentado con el nuevo prompt anti-IA.
  * Protegido con el mismo CRON_SECRET que el cron diario.
  */
 import { NextResponse, type NextRequest } from 'next/server';
-import { regenerarMensajesExistentes } from '@/lib/engines/personalization';
+import {
+  regenerarMensajesExistentes,
+  regenerarComentariosExistentes,
+} from '@/lib/engines/personalization';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -20,8 +23,11 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const { regenerados } = await regenerarMensajesExistentes();
-    return NextResponse.json({ ok: true, regenerados });
+    const [{ regenerados: mensajes }, { regenerados: comentarios }] = await Promise.all([
+      regenerarMensajesExistentes(),
+      regenerarComentariosExistentes(),
+    ]);
+    return NextResponse.json({ ok: true, mensajes, comentarios });
   } catch (err) {
     console.error('[regenerar-mensajes] Error:', err);
     return NextResponse.json({ ok: false, error: String(err) }, { status: 500 });

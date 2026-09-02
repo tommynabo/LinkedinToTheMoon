@@ -237,3 +237,41 @@ export async function regenerarMensajesExistentes(): Promise<{ regenerados: numb
 
   return { regenerados };
 }
+
+/**
+ * Regenera el comentario_post de TODOS los prospectos en estado 'Pendiente' o 'Comentado'
+ * que ya tenían un post con suficiente texto (mínimo MIN_POST_CHARS caracteres).
+ * Útil para aplicar un nuevo tono/formato a comentarios ya generados.
+ */
+export async function regenerarComentariosExistentes(): Promise<{ regenerados: number }> {
+  await ensureSchema();
+
+  const { rows } = await sql<{
+    id: number;
+    nombre: string;
+    cargo: string | null;
+    ultimo_post_texto: string | null;
+  }>`
+    SELECT id, nombre, cargo, ultimo_post_texto FROM prospectos
+    WHERE estado IN ('Pendiente', 'Comentado')
+      AND ultimo_post_texto IS NOT NULL
+      AND LENGTH(ultimo_post_texto) >= ${MIN_POST_CHARS}
+    ORDER BY score DESC, id ASC
+  `;
+
+  let regenerados = 0;
+
+  for (const row of rows) {
+    try {
+      const ultimoPost = row.ultimo_post_texto!.trim();
+      const comentario = await generarComentarioPost(row.nombre, row.cargo || '', ultimoPost);
+      await sql`UPDATE prospectos SET comentario_post = ${comentario} WHERE id = ${row.id}`;
+      regenerados++;
+    } catch (err) {
+      console.error(`[Personalization] Error regenerando comentario para prospecto ${row.id}:`, err);
+    }
+  }
+
+  return { regenerados };
+}
+
