@@ -95,29 +95,30 @@ export async function personalizarMensajesYAudios(): Promise<ResultadoPersonaliz
 }
 
 const INSTRUCCION_IDIOMA = `
-CRÍTICO: El idioma de tu respuesta (tanto el mensaje como el comentario) DEBE SER EXACTAMENTE EL MISMO en el que está escrito el texto de referencia.
-- Si el perfil o el post está en ESPAÑOL, debes escribir en ESPAÑOL.
-- Si está en INGLÉS, debes escribir en INGLÉS.
-No te confundas por el hecho de que su cargo pueda incluir palabras en inglés como "Growth Partner" si el resto del texto está en español. Nunca traduzcas al inglés si la persona claramente habla español.
+CRÍTICO: El idioma de tu respuesta DEBE SER EXACTAMENTE EL MISMO en el que está escrito el texto de referencia.
+- Perfil o post en ESPAÑOL → responde en ESPAÑOL.
+- En INGLÉS → en INGLÉS.
+No te confundas si el cargo tiene palabras en inglés ("Growth Partner") pero el resto está en español. Nunca traduzcas si la persona claramente habla español.
 `.trim();
 
-// Excepción SOLO para el comentario de post (no para el mensaje de conexión): si el idioma
-// detectado es francés, italiano o de un país escandinavo, se escribe en inglés en vez de en
-// ese idioma — pedido explícito para evitar comentarios en idiomas "raros" para el resto de
-// gente que lea el post.
+// Excepción SOLO para el comentario de post: si el idioma detectado es francés, italiano o
+// escandinavo, escribe en inglés (para no dejar comentarios en idiomas raros para el resto).
 const EXCEPCION_IDIOMA_COMENTARIO = `
-Excepción importante: si el idioma detectado es francés, italiano, sueco, noruego, danés,
-finlandés o islandés, escribe el comentario en INGLÉS en vez de en ese idioma (el resto de
-idiomas, incluido el español, siguen la regla normal de arriba).
+Excepción: si el idioma es francés, italiano, sueco, noruego, danés, finlandés o islandés,
+escribe en INGLÉS (el resto de idiomas, incluido español, siguen la regla normal).
 `.trim();
 
 const INSTRUCCION_TONO = `
-Tono: juvenil, cercano y espontáneo, como si lo escribieras rápido desde el móvil sin pulirlo
-demasiado. Mete muletillas y palabras coloquiales de forma natural — en español algo tipo
-"mola", "molaría", "cositas", "tal cual", "un rollo", "vaya crack", diminutivos...; en otros
-idiomas el equivalente que suene igual de joven y natural en ESE idioma (en inglés algo tipo
-"ngl", "lowkey", "kinda", "love this"). No fuerces la jerga si no encaja con el post — que
-suene a persona real escribiendo rápido, no a plantilla ni a IA.
+Escribo desde el móvil, sin revisar. Tono directo, joven, sin poses.
+En español: nada de "estimado", "me complace", ni palabras de relaciones públicas.
+En inglés: nada de "hope this finds you well", "I came across your profile", ni "I'd love to connect".
+
+PROHIBIDO en CUALQUIER idioma (son marcadores claros de IA, no los uses nunca):
+- En español: potenciar, apalancar, transformar, impulsar, ecosistema, sinergia, en el mundo actual, en el panorama actual, innovador, disruptivo, en este sentido, desde luego, sin duda, sin lugar a dudas, en primer lugar, en definitiva, en conclusión, me alegra, me complace, es un placer.
+- En inglés: leverage, synergy, unlock, delve, transformative, game-changer, crucial, moreover, in today's fast-paced world, it's worth noting, I hope this message finds you well, touch base, circle back, reach out, I came across, I'd love to, I'm excited to.
+
+VARIACIÓN DE FRASES (clave para sonar humano):
+Mezcla frases muy cortas (3-6 palabras) con frases algo más largas. No todas igual de largas. Eso es lo que hace que suene real.
 `.trim();
 
 export async function generarComentarioPost(nombre: string, cargo: string, ultimoPost: string): Promise<string> {
@@ -126,27 +127,27 @@ ${INSTRUCCION_IDIOMA}
 ${EXCEPCION_IDIOMA_COMENTARIO}
 ${INSTRUCCION_TONO}
 
-Este es el último post de LinkedIn de ${nombre} (${cargo}):
+Último post de LinkedIn de ${nombre} (${cargo}):
 """
 ${ultimoPost}
 """
 
-Escribe un comentario corto para dejar directamente debajo de ESE post en LinkedIn.
+Escribe un comentario para dejar debajo de ese post.
 
-Evita el patrón repetitivo de citar textualmente una frase suya tipo "me quedé pensando en
-eso que dices de...". En vez de eso, elige el enfoque que mejor pegue con este post en
-concreto (varía, no uses siempre el mismo):
-- Una reacción general y directa a la idea de fondo del post (sin citar literalmente una frase).
-- Una pregunta con chispa que le pique la curiosidad sobre el tema, para darle caña.
-- Ponerte de su lado, reforzando o construyendo sobre su punto de vista con algo tuyo.
+Reglas estrictas:
+1. Reacciona a la IDEA CENTRAL del post. No cites literalmente ninguna frase suya.
+2. Elige el ángulo que mejor encaje (no uses siempre el mismo):
+   - Reacción directa y corta a la idea.
+   - Pregunta que le pique la curiosidad.
+   - Darle la razón añadiendo algo tuyo.
+3. Que se note que lo leíste. Sin sonar a venta ni a ensayo.
+4. Máximo 1 frase corta. Excepcionalmente 2 muy breves.
+5. Sin guiones ("\-", "—", "–"). Usa comas o puntos.
+6. Sin introducciones como "¡Qué interesante!", "Gran post", "Me ha encantado", "100%", emojis de aplauso, ni ningún arranque típico de bot.
+7. No empieces NUNCA con el nombre de la persona.
+8. Escríbelo como si lo escribieras de golpe desde el móvil, sin revisar.
 
-Nada elaborado ni "especial": cortito, personal y chill, del estilo de un comentario real que
-dejarías sin pensarlo mucho. Debe notarse que lo has leído, pero sin sonar a ensayo ni a venta.
-
-Máximo 1 frase corta (excepcionalmente 2 muy breves).
-PROHIBIDO usar guiones (como "-", "—" o "–") en el texto. Usa comas o puntos en su lugar.
-
-Responde ÚNICAMENTE con el texto del comentario, sin comillas ni explicaciones adicionales.
+Responde ÚNICAMENTE con el texto del comentario. Sin comillas ni explicaciones.
 `.trim();
 
   const texto = await callClaude(prompt, 120);
@@ -160,42 +161,36 @@ export async function generarMensajePersonalizado(
   ultimoPost: string | null
 ): Promise<string> {
   const referencia = ultimoPost
-    ? `Su último post en LinkedIn decía (resúmelo o cita algo concreto, no lo copies entero):\n"""\n${ultimoPost}\n"""`
-    : `Este es un dato personalizado sobre su perfil/bio: "${bio}".`;
+    ? `Su último post (resume la idea principal, no lo copies entero):\n"""\n${ultimoPost}\n"""`
+    : `Dato de su perfil/bio: "${bio}".`;
 
   const prompt = `
 ${INSTRUCCION_IDIOMA}
 ${INSTRUCCION_TONO}
 
-Genera un mensaje de conexión de LinkedIn para ${nombre}, ${cargo}.
+Escribe un mensaje de solicitud de conexión en LinkedIn para ${nombre}, ${cargo}.
 
 ${referencia}
 
-Haz referencia natural a ese contenido concreto (su post si lo tienes, si no su bio) — debe
-notarse que el mensaje es solo para ella/él, no una plantilla genérica. Evita abrir siempre
-igual (nada de "me quedé pensando en tu post sobre..." como fórmula fija); busca un enfoque
-distinto cada vez, el que mejor encaje.
+Reglas:
+1. Arranca con algo específico de ESE perfil o post. Que sea evidente que es para esta persona, no una plantilla. Cada mensaje debe abrir distinto.
+2. Ve directo: ofrece sistemas de prospección B2B y arquitectura de datos. Sin rodeos, sin falsas simpatías, sin preguntas innecesarias.
+3. Pitch en 1 frase. Claro, no técnico. Sin jerga de startup.
+4. CTA final corto: "¿Te llama la atención?" o similar. Una sola frase.
+5. Sin guiones ("\-", "—", "–"). Usa comas o puntos.
+6. FORMATO: cada frase en su propia línea, separada por una línea en blanco. Sin bloques de texto.
+7. Máximo 4 frases en total. Máximo 300 caracteres en total.
+8. Mezcla frases cortas y largas. No todas iguales. Eso es lo que suena humano.
 
-Ve directo al grano a vender. Nada de preguntas, rodeos ni falsas simpatías.
-El objetivo es ofrecer nuestros sistemas de prospección B2B y arquitectura de datos de forma clara y directa en este primer mensaje. Haz un pitch corto y contundente.
-PROHIBIDO usar guiones (como "-", "—" o "–") en el texto. Usa comas o puntos en su lugar.
+EJEMPLO DE FORMATO (no copies el contenido, solo el formato):
 
-FORMATO OBLIGATORIO: escribe cada frase en su propia línea, separada por UNA línea en blanco
-de la siguiente. Sin párrafos largos. Sin bloques de texto. Igual que este ejemplo:
+Vi tu post sobre la captación en B2B.
 
----EJEMPLO DE FORMATO CORRECTO---
-Vi tu post sobre escalabilidad en SaaS.
+Nosotros automatizamos ese proceso con sistemas de datos a escala.
 
-Lo que haces con los datos de actividad es exactamente lo que necesitan la mayoría de founders para no desperdiciar su pipeline.
+¿Te llama la atención?
 
-Nosotros construimos sistemas de prospección B2B con arquitectura de datos que hacen esto automático, a escala.
-
-¿Conectamos?
----FIN DEL EJEMPLO---
-
-Máximo 4 frases en total. Que quepa en un mensaje de conexión de LinkedIn (300 caracteres máximo en total).
-
-Responde ÚNICAMENTE con el texto del mensaje en ese formato, sin comillas ni explicaciones adicionales.
+Responde ÚNICAMENTE con el texto del mensaje. Sin comillas ni explicaciones.
 `.trim();
 
   const texto = await callClaude(prompt, 400);
