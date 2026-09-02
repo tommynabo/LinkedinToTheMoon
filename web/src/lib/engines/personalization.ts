@@ -206,7 +206,10 @@ function todayISO(): string {
  * que ya tenían un mensaje (es decir, los que hay ahora mismo en esas columnas).
  * Útil para aplicar un nuevo formato de escritura a mensajes ya generados.
  */
-export async function regenerarMensajesExistentes(): Promise<{ regenerados: number }> {
+export async function regenerarMensajesExistentes(
+  limit = 999999,
+  offset = 0
+): Promise<{ regenerados: number; total: number }> {
   await ensureSchema();
 
   const { rows } = await sql<{
@@ -219,7 +222,13 @@ export async function regenerarMensajesExistentes(): Promise<{ regenerados: numb
     SELECT id, nombre, cargo, dato_personalizado, ultimo_post_texto FROM prospectos
     WHERE estado IN ('Pendiente', 'Comentado')
     ORDER BY score DESC, id ASC
+    LIMIT ${limit} OFFSET ${offset}
   `;
+
+  const { rows: countRows } = await sql<{ total: string }>`
+    SELECT COUNT(*) as total FROM prospectos WHERE estado IN ('Pendiente', 'Comentado')
+  `;
+  const total = parseInt(countRows[0]?.total || '0', 10);
 
   let regenerados = 0;
 
@@ -235,7 +244,7 @@ export async function regenerarMensajesExistentes(): Promise<{ regenerados: numb
     }
   }
 
-  return { regenerados };
+  return { regenerados, total };
 }
 
 /**
@@ -243,7 +252,10 @@ export async function regenerarMensajesExistentes(): Promise<{ regenerados: numb
  * que ya tenían un post con suficiente texto (mínimo MIN_POST_CHARS caracteres).
  * Útil para aplicar un nuevo tono/formato a comentarios ya generados.
  */
-export async function regenerarComentariosExistentes(): Promise<{ regenerados: number }> {
+export async function regenerarComentariosExistentes(
+  limit = 999999,
+  offset = 0
+): Promise<{ regenerados: number; total: number }> {
   await ensureSchema();
 
   const { rows } = await sql<{
@@ -257,7 +269,16 @@ export async function regenerarComentariosExistentes(): Promise<{ regenerados: n
       AND ultimo_post_texto IS NOT NULL
       AND LENGTH(ultimo_post_texto) >= ${MIN_POST_CHARS}
     ORDER BY score DESC, id ASC
+    LIMIT ${limit} OFFSET ${offset}
   `;
+
+  const { rows: countRows } = await sql<{ total: string }>`
+    SELECT COUNT(*) as total FROM prospectos
+    WHERE estado IN ('Pendiente', 'Comentado')
+      AND ultimo_post_texto IS NOT NULL
+      AND LENGTH(ultimo_post_texto) >= ${MIN_POST_CHARS}
+  `;
+  const total = parseInt(countRows[0]?.total || '0', 10);
 
   let regenerados = 0;
 
@@ -272,6 +293,6 @@ export async function regenerarComentariosExistentes(): Promise<{ regenerados: n
     }
   }
 
-  return { regenerados };
+  return { regenerados, total };
 }
 

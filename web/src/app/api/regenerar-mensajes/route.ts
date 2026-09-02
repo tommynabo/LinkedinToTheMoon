@@ -1,8 +1,13 @@
 /**
  * /api/regenerar-mensajes
- * Endpoint para regenerar mensajes de conexión Y comentarios de post de todos los
- * prospectos en estado Pendiente y Comentado con el nuevo prompt anti-IA.
- * Protegido con el mismo CRON_SECRET que el cron diario.
+ * Regenera mensajes de conexión Y comentarios de post en lotes pequeños para
+ * no superar el timeout de Vercel (300s). Usa ?limit=N&offset=M para paginar.
+ * Protegido con CRON_SECRET bearer token.
+ *
+ * Ejemplo de uso en bucle:
+ *   GET /api/regenerar-mensajes?limit=10&offset=0
+ *   GET /api/regenerar-mensajes?limit=10&offset=10
+ *   ... hasta que regenerados < limit
  */
 import { NextResponse, type NextRequest } from 'next/server';
 import {
@@ -22,12 +27,25 @@ export async function GET(request: NextRequest) {
     return new NextResponse('Unauthorized', { status: 401 });
   }
 
+  const { searchParams } = new URL(request.url);
+  const limit = parseInt(searchParams.get('limit') || '999999', 10);
+  const offset = parseInt(searchParams.get('offset') || '0', 10);
+
   try {
-    const [{ regenerados: mensajes }, { regenerados: comentarios }] = await Promise.all([
-      regenerarMensajesExistentes(),
-      regenerarComentariosExistentes(),
+    const [mensajesResult, comentariosResult] = await Promise.all([
+      regenerarMensajesExistentes(limit, offset),
+      regenerarComentariosExistentes(limit, offset),
     ]);
-    return NextResponse.json({ ok: true, mensajes, comentarios });
+
+    return NextResponse.json({
+      ok: true,
+      limit,
+      offset,
+      mensajes: mensajesResult.regenerados,
+      comentarios: comentariosResult.regenerados,
+      totalMensajes: mensajesResult.total,
+      totalComentarios: comentariosResult.total,
+    });
   } catch (err) {
     console.error('[regenerar-mensajes] Error:', err);
     return NextResponse.json({ ok: false, error: String(err) }, { status: 500 });
