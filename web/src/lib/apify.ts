@@ -14,13 +14,9 @@
  * de búsqueda por defecto usa las mismas palabras clave del ICP (ver SCORE_KEYWORDS en
  * config.ts).
  *
- * El ICP quiere un mínimo de MINIMO_ESPANA_POR_DIA prospectos de España específicamente
- * (ver config.ts) de los PROSPECTOS_POR_DIA totales; el resto puede ser de cualquier otro
- * sitio. Por defecto se lanzan DOS búsquedas: una sesgada a España (UBICACION_PRIORITARIA)
- * y otra sin restricción de ubicación para el resto de huecos. Si defines APIFY_LOCATIONS
- * (separadas por coma) se usa esa ubicación en vez de España para la búsqueda sesgada. El
- * filtrado/priorización final por país real (incluida la exclusión de portugués/brasileño)
- * pasa en engines/prospecting.ts vía idioma.ts (esDeEspana/detectarIdiomaAprox).
+ * Países admitidos: España, Reino Unido, Estados Unidos y Canadá. El filtro final
+ * exige ubicación explícita del autor; una búsqueda sesgada no prueba su residencia.
+ * Los buscadores de posts pueden devolver autores sin ubicación: se descartan.
  *
  * El actor de búsqueda de perfiles NO devuelve el contenido de sus posts recientes, así que
  * para el último post usamos un segundo actor, `harvestapi/linkedin-profile-posts`
@@ -28,6 +24,7 @@
  * pasaron el filtro/dedupe, nunca para todo el resultado bruto de la búsqueda.
  */
 import { PROSPECTOS_POR_DIA, SCORE_KEYWORDS, UBICACION_PRIORITARIA } from './config';
+import { PAISES_BUSQUEDA, paisPermitido, ubicacionPerfil } from './geography';
 import { normalizeLinkedInUrl } from './validation';
 import type { ProspectoCrudo } from './types';
 
@@ -109,7 +106,7 @@ export async function buscarProspectosConApify(): Promise<ProspectoCrudo[]> {
   const locationsOverride = (process.env.APIFY_LOCATIONS || '')
     .split(',')
     .map((l) => l.trim())
-    .filter(Boolean);
+    .filter((l) => paisPermitido(l) !== null);
 
   if (esActorMemo23(actorId)) {
     return buscarConMemo23(actorId, token, locationsOverride);
@@ -132,14 +129,14 @@ export async function buscarProspectosConApify(): Promise<ProspectoCrudo[]> {
   }
 
   // Pool grande sesgado a España (mínimo MINIMO_ESPANA_POR_DIA en config.ts) + pool pequeño
-  // sin restricción de ubicación para el resto de huecos, en paralelo. El resultado
+  // limitado a los otros países permitidos para el resto de huecos, en paralelo. El resultado
   // combinado se filtra/prioriza por país real en engines/prospecting.ts.
   const poolEspana = Math.max(PROSPECTOS_POR_DIA * 3, 60);
   const poolResto = PROSPECTOS_POR_DIA;
 
   const [itemsEspana, itemsResto] = await Promise.all([
     ejecutarActorSync(actorId, token, { ...base(poolEspana), locations: [UBICACION_PRIORITARIA] }),
-    ejecutarActorSync(actorId, token, base(poolResto)),
+    ejecutarActorSync(actorId, token, { ...base(poolResto), locations: PAISES_BUSQUEDA.slice(1) }),
   ]);
 
   return deduplicarPorUrl([...itemsEspana, ...itemsResto]);
@@ -149,8 +146,8 @@ export async function buscarProspectosConApify(): Promise<ProspectoCrudo[]> {
  * `memo23/linkedin-people-search` no acepta un array de ubicaciones (solo un `location`
  * string), así que hacemos DOS grupos de búsquedas por separado: uno con `location` fijado
  * a España (para garantizar MINIMO_ESPANA_POR_DIA candidatos reales de España, ver
- * config.ts y prospecting.ts) y otro sin restricción de ubicación para el resto de huecos
- * (pueden ser de cualquier otro país). Si el usuario definió APIFY_LOCATIONS se usa solo la
+ * config.ts y prospecting.ts) y otro limitado a los otros países permitidos para el resto de huecos
+ * (Reino Unido, Estados Unidos o Canadá). Si el usuario definió APIFY_LOCATIONS se usa solo la
  * primera ubicación de la lista en vez de España para el grupo sesgado (el actor solo
  * admite una).
  *
@@ -206,7 +203,8 @@ async function buscarConMemo23(
     rotacionResto.map((keywords) =>
       ejecutarActorSync(actorId, token, { 
         mode: 'public', 
-        keywords, 
+        keywords,
+        location: PAISES_BUSQUEDA[1 + dayOfYear % 3],
         maxResults: 100 // Límite incrementado
       }) 
     )
@@ -285,7 +283,7 @@ async function buscarProspectosPorPosts(
       ultimoPostFecha: postDate,
       ultimoPostUrl: item.linkedinUrl || item.url || '',
       seguidores: author.followers || item.authorFollowers || null,
-      ubicacion: author.location || item.authorLocation || '',
+      ubicacion: ubicacionPerfil(author) || ubicacionPerfil({ location: item.authorLocation }),
       vieneDePost: true,
     });
   }
@@ -350,5 +348,6 @@ function normalizarItem(item: Record<string, any>): ProspectoCrudo {
     ultimoPostTema: item.lastPostTopic || item.lastPostText || '',
     ultimoPostFecha: item.lastPostDate || null,
     seguidores: typeof seguidores === 'number' ? seguidores : null,
+    ubicacion: ubicacionPerfil(item),
   };
 }

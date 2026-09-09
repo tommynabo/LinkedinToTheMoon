@@ -15,7 +15,11 @@ export async function updateProspectoEstado(formData: FormData): Promise<void> {
   const id = Number(formData.get('id'));
   const estado = String(formData.get('estado') || 'Pendiente');
   if (!id) return;
-  await sql`UPDATE prospectos SET estado = ${estado} WHERE id = ${id}`;
+  if (!['Pendiente', 'Comentado', 'Enviado', 'Descartado'].includes(estado)) return;
+  // Enforce on the server as well as discovery, including legacy rows with no country.
+  await sql`UPDATE prospectos SET estado = ${estado} WHERE id = ${id}
+    AND (${estado} = 'Descartado' OR pais IN ('ES', 'GB', 'US', 'CA'))`;
+
   revalidatePath('/prospectos');
 }
 
@@ -101,13 +105,13 @@ export async function importarProspectosAction(formData: FormData): Promise<void
   for (const linea of filas) {
     const separador = linea.includes('\t') ? '\t' : ',';
     const columnas = linea.split(separador).map((c) => c.trim());
-    const [nombre, url, cargo, empresa, bio, ultimoPost, seguidores] = columnas;
+    const [nombre, url, cargo, empresa, bio, ultimoPost, seguidores, ubicacion] = columnas;
     if (!url) continue;
 
     await sql`
-      INSERT INTO prospectos_import (nombre, url_perfil, cargo, empresa, bio, ultimo_post, seguidores)
+      INSERT INTO prospectos_import (nombre, url_perfil, cargo, empresa, bio, ultimo_post, seguidores, ubicacion)
       VALUES (${nombre || ''}, ${url}, ${cargo || ''}, ${empresa || ''}, ${bio || ''}, ${ultimoPost || ''},
-              ${seguidores ? Number(seguidores) || null : null})
+              ${seguidores ? Number(seguidores) || null : null}, ${ubicacion || null})
     `;
   }
 

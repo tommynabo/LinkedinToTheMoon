@@ -7,7 +7,8 @@
 import { ensureSchema, sql } from '../db';
 import { PROSPECTOS_POR_DIA, MINIMO_ESPANA_POR_DIA } from '../config';
 import { buscarProspectosConApify, buscarUltimosPosts, tieneApifyConfigurado } from '../apify';
-import { detectarIdiomaAprox, esDeEspana } from '../idioma';
+import { paisPermitido } from '../geography';
+import { detectarIdiomaAprox } from '../idioma';
 import { calcularScore, getUrlsConocidas } from '../scoring';
 import { esProspectoValido, normalizeLinkedInUrl } from '../validation';
 import type { ProspectoCrudo } from '../types';
@@ -31,7 +32,7 @@ export async function buscarProspectosDeHoy(): Promise<ResultadoProspeccion> {
   // PASO 1: Comprobar el reservorio (Cola de Reserva)
   const resultReserva = await sql`
     SELECT id FROM prospectos 
-    WHERE estado = 'Reserva' 
+    WHERE estado = 'Reserva' AND pais IN ('ES', 'GB', 'US', 'CA')
     ORDER BY score DESC, created_at ASC 
     LIMIT ${PROSPECTOS_POR_DIA}
   `;
@@ -96,7 +97,7 @@ export async function buscarProspectosDeHoy(): Promise<ResultadoProspeccion> {
       prospecto: p,
       score: calcularScore(p),
       idioma: detectarIdiomaAprox(`${p.cargo} ${p.bio}`),
-      esEspana: esDeEspana(p.url, `${p.cargo} ${p.bio} ${p.ubicacion || ''}`),
+      esEspana: paisPermitido(p.ubicacion) === 'ES',
       tienePostReal: false,   // ← flag explícito, se actualiza tras el scraper de posts
     }))
     // Exclusión total de portugués/brasileño, pedido explícito del ICP.
@@ -127,7 +128,7 @@ export async function buscarProspectosDeHoy(): Promise<ResultadoProspeccion> {
   async function procesarPostParaChunk(chunk: typeof candidatosClasificados) {
     if (chunk.length === 0) return [];
     
-    if (fuente === 'Apify') {
+    if (fuente === 'Apify' || fuente === 'Mixta') {
       const urlsFaltantes = chunk.filter(c => !c.prospecto.vieneDePost).map(c => c.prospecto.url);
       if (urlsFaltantes.length > 0) {
         console.log(`[Prospecting] Buscando posts para lote de ${urlsFaltantes.length} perfiles...`);
@@ -199,9 +200,9 @@ export async function buscarProspectosDeHoy(): Promise<ResultadoProspeccion> {
       const ultimoPostUrl   = postScraper?.url || prospecto.ultimoPostUrl || null;
 
       await sql`
-        INSERT INTO prospectos (fecha_extraccion, nombre, url_perfil, cargo, score, dato_personalizado, ultimo_post_texto, ultimo_post_url, estado)
+        INSERT INTO prospectos (fecha_extraccion, nombre, url_perfil, cargo, score, dato_personalizado, ultimo_post_texto, ultimo_post_url, estado, ubicacion, pais)
         VALUES (CURRENT_DATE, ${prospecto.nombre}, ${prospecto.url}, ${prospecto.cargo}, ${score},
-                ${prospecto.bio || null}, ${ultimoPostTexto}, ${ultimoPostUrl}, ${estado})
+                ${prospecto.bio || null}, ${ultimoPostTexto}, ${ultimoPostUrl}, ${estado}, ${prospecto.ubicacion || null}, ${paisPermitido(prospecto.ubicacion)})
       `;
 
       await sql`
@@ -233,6 +234,7 @@ export async function buscarProspectosDeHoy(): Promise<ResultadoProspeccion> {
 }
 
 interface ImportRow {
+  ubicacion: string | null;
   nombre: string | null;
   url_perfil: string | null;
   cargo: string | null;
@@ -247,6 +249,7 @@ async function leerProspectosImportados(): Promise<ProspectoCrudo[]> {
   return rows
     .filter((r) => r.url_perfil)
     .map((r) => ({
+      ubicacion: r.ubicacion || '',
       nombre: r.nombre || '',
       url: r.url_perfil || '',
       cargo: r.cargo || '',

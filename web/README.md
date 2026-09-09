@@ -101,3 +101,35 @@ npm run dev
 Necesitas un `.env.local` con al menos `POSTGRES_URL`, `BLOB_READ_WRITE_TOKEN`,
 `ANTHROPIC_API_KEY`, `DASHBOARD_USER`, `DASHBOARD_PASSWORD` (puedes usar `vercel env pull` si ya
 desplegaste el proyecto).
+
+
+### Filtro geográfico obligatorio
+
+La aplicación web solo admite autores con ubicación explícita en España (ES), Reino Unido
+(GB), Estados Unidos (US) o Canadá (CA). Se valida antes de guardar candidatos procedentes
+de búsquedas de perfiles, posts o importaciones. Nombre, idioma, bio y dominio de LinkedIn
+no son pruebas del país. Ubicaciones vacías, ambiguas o de otros países se excluyen; por ello
+puede haber menos de 25 candidatos diarios. Si el actor de posts no devuelve la ubicación
+del autor, sus resultados no se admiten: utiliza un actor de perfiles con ubicación.
+
+La migración idempotente añade `ubicacion` y `pais` a `prospectos`, y `ubicacion` a
+`prospectos_import`. Las importaciones requieren una octava columna, País (preferiblemente
+TSV para no dividir ubicaciones con comas). Los registros antiguos sin país se conservan,
+pero no aparecen en la cola activa, no salen de Reserva ni pueden pasar a Comentado o
+recibir nuevos mensajes. Los históricos Enviado/Descartado y CRM se conservan visibles.
+No se asigna retrospectivamente un país sin evidencia.
+
+Las búsquedas de perfiles se restringen geográficamente; `APIFY_LOCATIONS` no puede ampliar
+la lista permitida. La reserva, las lecturas del dashboard, la personalización y los cambios
+de estado también comprueban el país guardado. La actualización entra en funcionamiento
+cuando se despliega esta versión de `web` en Vercel; subir a GitHub solo la desplegará si
+el proyecto tiene activados los despliegues automáticos. El directorio `src` de la raíz es
+la implementación antigua de Apps Script, independiente de este dashboard.
+
+Pruebas locales sin llamadas reales a Apify ni a la base de datos:
+
+```sh
+npm ci
+node --import tsx --test tests/geography.test.ts
+npm run typecheck
+```

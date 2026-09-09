@@ -14,7 +14,9 @@ export async function getPosts(): Promise<PostRow[]> {
 export async function getProspectos(): Promise<ProspectoRow[]> {
   await ensureSchema();
   const { rows } = await sql<ProspectoRow>`
-    SELECT * FROM prospectos ORDER BY created_at ASC LIMIT 500
+    SELECT * FROM prospectos
+    WHERE pais IN ('ES', 'GB', 'US', 'CA') OR estado IN ('Enviado', 'Descartado')
+    ORDER BY created_at ASC LIMIT 500
   `;
   return rows;
 }

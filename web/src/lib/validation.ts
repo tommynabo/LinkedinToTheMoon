@@ -6,6 +6,7 @@
  * anti-bot de LinkedIn), así que esto valida forma/completitud, no "el perfil existe".
  */
 import { LINKEDIN_URL_REGEX, BLACKLIST_KEYWORDS } from './config';
+import { paisPermitido } from './geography';
 import type { ProspectoCrudo } from './types';
 
 export function normalizeLinkedInUrl(url: string): string {
@@ -24,6 +25,7 @@ export function esUrlLinkedInValida(url: string): boolean {
 }
 
 export function esProspectoValido(p: ProspectoCrudo): boolean {
+  if (!paisPermitido(p.ubicacion)) return false;
   if (!p.nombre?.trim() || !p.cargo?.trim() || !esUrlLinkedInValida(p.url)) {
     return false;
   }

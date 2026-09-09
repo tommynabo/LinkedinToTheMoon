@@ -61,6 +61,8 @@ async function crearTablas(): Promise<void> {
   await sql`ALTER TABLE prospectos ADD COLUMN IF NOT EXISTS ultimo_post_texto TEXT;`;
   await sql`ALTER TABLE prospectos ADD COLUMN IF NOT EXISTS ultimo_post_url TEXT;`;
   await sql`ALTER TABLE prospectos ADD COLUMN IF NOT EXISTS comentario_post TEXT;`;
+  await sql`ALTER TABLE prospectos ADD COLUMN IF NOT EXISTS ubicacion TEXT;`;
+  await sql`ALTER TABLE prospectos ADD COLUMN IF NOT EXISTS pais TEXT;`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS prospectos_import (
@@ -75,6 +77,8 @@ async function crearTablas(): Promise<void> {
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
   `;
+
+  await sql`ALTER TABLE prospectos_import ADD COLUMN IF NOT EXISTS ubicacion TEXT;`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS crm (

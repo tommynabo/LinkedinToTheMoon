@@ -41,8 +41,8 @@ export default async function ProspectosPage({
     <>
       <h1>Prospectos</h1>
       <p className="subtitle">
-        El autopiloto trae hasta 25 prospectos nuevos al día (mínimo 15 de España, el resto de
-        cualquier otro sitio), ya puntuados y con mensaje + comentario de post + audio
+        El autopiloto trae hasta 25 prospectos nuevos al día de España, Reino Unido, Estados Unidos
+        y Canadá, priorizando España cuando hay suficientes candidatos válidos, ya puntuados y con mensaje + comentario de post + audio
         personalizados. Deja el comentario en su post, envía la conexión desde LinkedIn con el
         mensaje de aquí, luego marca el estado. Cuando termines el día, pulsa "Mover al CRM".
       </p>
