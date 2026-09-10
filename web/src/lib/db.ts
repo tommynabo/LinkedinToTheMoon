@@ -1,34 +1,35 @@
 /**
  * db.ts
- * Conexión a Vercel Postgres + creación idempotente del esquema. No hace falta ninguna
+ * Conexión a Neon/Postgres + creación idempotente del esquema. No hace falta ninguna
  * migración manual: la primera petición (cron o página) crea las tablas si no existen.
  *
- * NOTA: Cuando `vercel env pull` genera .env.local, pone las variables con el prefijo
- * del proyecto (ej. `linkedintothemoon_POSTGRES_URL`). El siguiente bloque las copia
- * a los nombres estándar que espera @vercel/postgres, así el servidor local funciona
- * sin tocar nada a mano.
+ * COMPATIBILIDAD LOCAL: Cuando `vercel env pull` genera .env.local, pone las variables
+ * con el prefijo del proyecto (ej. `linkedintothemoon_POSTGRES_URL`). Este módulo resuelve
+ * la URL correcta desde cualquiera de los dos nombres, así el servidor local funciona
+ * sin editar nada a mano.
  */
-import { sql } from '@vercel/postgres';
+import { neon } from '@neondatabase/serverless';
 
-// Resuelve las variables de entorno prefijadas que genera `vercel env pull`.
-// Si ya existe POSTGRES_URL directamente (producción / .env), no hace nada.
-const PREFIX = 'linkedintothemoon_';
-const VARS_TO_ALIAS = [
-  'POSTGRES_URL',
-  'POSTGRES_URL_NON_POOLING',
-  'POSTGRES_USER',
-  'POSTGRES_HOST',
-  'POSTGRES_PASSWORD',
-  'POSTGRES_DATABASE',
-  'DATABASE_URL',
-] as const;
-for (const v of VARS_TO_ALIAS) {
-  if (!process.env[v] && process.env[`${PREFIX}${v}`]) {
-    process.env[v] = process.env[`${PREFIX}${v}`];
-  }
+// Acepta POSTGRES_URL (producción/Vercel) o linkedintothemoon_POSTGRES_URL (vercel env pull local)
+const POSTGRES_URL =
+  process.env.POSTGRES_URL ||
+  process.env.linkedintothemoon_POSTGRES_URL ||
+  process.env.DATABASE_URL ||
+  process.env.linkedintothemoon_DATABASE_URL;
+
+if (!POSTGRES_URL) {
+  throw new Error(
+    '[db.ts] No se encontró POSTGRES_URL ni linkedintothemoon_POSTGRES_URL. ' +
+    'Ejecuta `vercel env pull` o define POSTGRES_URL en tu .env.local'
+  );
 }
 
-export { sql };
+// fullResults: true → devuelve { rows, fields, rowCount } igual que @vercel/postgres
+// Así no hay wrapper ni transformación — el tipo es correcto en el contexto de Next.js.
+export const sql = neon(POSTGRES_URL, { fullResults: true }) as unknown as <T = Record<string, unknown>>(
+  strings: TemplateStringsArray,
+  ...values: unknown[]
+) => Promise<{ rows: T[] }>;
 
 let schemaReady: Promise<void> | null = null;
 

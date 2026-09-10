@@ -15,11 +15,13 @@ export async function getProspectos(): Promise<ProspectoRow[]> {
   await ensureSchema();
   const { rows } = await sql<ProspectoRow>`
     SELECT * FROM prospectos
-    WHERE pais IN ('ES', 'GB', 'US', 'CA') OR estado IN ('Enviado', 'Descartado')
+    WHERE estado NOT IN ('Reserva')
+       OR pais IN ('ES', 'GB', 'US', 'CA')
     ORDER BY created_at ASC LIMIT 500
   `;
   return rows;
 }
+
 
 export async function getCrm(): Promise<CrmRow[]> {
   await ensureSchema();
