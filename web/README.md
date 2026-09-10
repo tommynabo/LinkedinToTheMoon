@@ -110,7 +110,8 @@ La aplicación web solo admite autores con ubicación explícita en España (ES)
 de búsquedas de perfiles, posts o importaciones. Nombre, idioma, bio y dominio de LinkedIn
 no son pruebas del país. Ubicaciones vacías, ambiguas o de otros países se excluyen; por ello
 puede haber menos de 25 candidatos diarios. Si el actor de posts no devuelve la ubicación
-del autor, sus resultados no se admiten: utiliza un actor de perfiles con ubicación.
+del autor, el sistema la completa por lotes de 10 con `APIFY_PROFILE_ACTOR_ID` (por defecto,
+`harvestapi/linkedin-profile-scraper`) y vuelve a aplicar el filtro cerrado antes de guardar.
 
 La migración idempotente añade `ubicacion` y `pais` a `prospectos`, y `ubicacion` a
 `prospectos_import`. Las importaciones requieren una octava columna, País (preferiblemente

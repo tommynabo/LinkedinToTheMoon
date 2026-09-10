@@ -26,15 +26,18 @@ export interface ResultadoProspeccion {
   sinPost: number;       // ← nuevo: cuántos se guardaron sin post (no debería haber)
 }
 
-export async function buscarProspectosDeHoy(): Promise<ResultadoProspeccion> {
+export async function buscarProspectosDeHoy(
+  objetivoDiario = PROSPECTOS_POR_DIA
+): Promise<ResultadoProspeccion> {
   await ensureSchema();
+  const limiteDiario = Math.max(1, Math.min(PROSPECTOS_POR_DIA, Math.floor(objetivoDiario)));
 
   // PASO 1: Comprobar el reservorio (Cola de Reserva)
   const resultReserva = await sql`
     SELECT id FROM prospectos 
     WHERE estado = 'Reserva' AND pais IN ('ES', 'GB', 'US', 'CA')
     ORDER BY score DESC, created_at ASC 
-    LIMIT ${PROSPECTOS_POR_DIA}
+    LIMIT ${limiteDiario}
   `;
   
   const recuperadosDeReserva = resultReserva.rows;
@@ -56,7 +59,7 @@ export async function buscarProspectosDeHoy(): Promise<ResultadoProspeccion> {
   }
 
   // Si ya hemos llenado el cupo del día con la reserva, terminamos aquí sin llamar a Apify.
-  if (nuevosPromovidos >= PROSPECTOS_POR_DIA) {
+  if (nuevosPromovidos >= limiteDiario) {
     return { 
       nuevos: nuevosPromovidos, 
       fuente: 'Reserva', 
@@ -67,13 +70,13 @@ export async function buscarProspectosDeHoy(): Promise<ResultadoProspeccion> {
     };
   }
 
-  const faltantes = PROSPECTOS_POR_DIA - nuevosPromovidos;
+  const faltantes = limiteDiario - nuevosPromovidos;
   console.log(`[Prospecting] Faltan ${faltantes} prospectos para llegar al cupo. Buscando nuevas fuentes...`);
 
   let candidatos: ProspectoCrudo[] = [];
 
   if (tieneApifyConfigurado()) {
-    candidatos = await buscarProspectosConApify();
+    candidatos = await buscarProspectosConApify(faltantes);
     if (candidatos.length > 0) fuente = nuevosPromovidos > 0 ? 'Mixta' : 'Apify';
   }
 

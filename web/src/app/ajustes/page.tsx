@@ -24,7 +24,7 @@ function construirChecks(): EnvCheck[] {
     { nombre: 'DASHBOARD_USER / DASHBOARD_PASSWORD', descripcion: 'Basic Auth de todo el dashboard', obligatoria: true, configurada: !!(process.env.DASHBOARD_USER && process.env.DASHBOARD_PASSWORD) },
     { nombre: 'OPENAI_API_KEY', descripcion: 'Genera la imagen de portada del post (opcional)', obligatoria: false, configurada: !!process.env.OPENAI_API_KEY },
     { nombre: 'ELEVENLABS_API_KEY / ELEVENLABS_VOICE_ID', descripcion: 'Genera el audio con tu voz clonada (opcional)', obligatoria: false, configurada: !!(process.env.ELEVENLABS_API_KEY && process.env.ELEVENLABS_VOICE_ID) },
-    { nombre: 'APIFY_API_TOKEN / APIFY_ACTOR_ID', descripcion: 'Búsqueda automática de prospectos (opcional, si no: usa /import). Actor recomendado: harvestapi/linkedin-profile-search', obligatoria: false, configurada: !!(process.env.APIFY_API_TOKEN && process.env.APIFY_ACTOR_ID) },
+    { nombre: 'APIFY_API_TOKEN / APIFY_ACTOR_ID', descripcion: 'Búsqueda automática de prospectos (opcional, si no: usa /import). Los actores de posts completan la ubicación con harvestapi/linkedin-profile-scraper.', obligatoria: false, configurada: !!(process.env.APIFY_API_TOKEN && process.env.APIFY_ACTOR_ID) },
     { nombre: 'RESEND_API_KEY / NOTIFICATION_EMAIL', descripcion: 'Correo-resumen diario (opcional)', obligatoria: false, configurada: !!(process.env.RESEND_API_KEY && process.env.NOTIFICATION_EMAIL) },
   ];
 }

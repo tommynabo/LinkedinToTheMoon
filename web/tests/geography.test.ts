@@ -45,8 +45,14 @@ test('all supported discovery paths preserve author location and restrict profil
   const inputs: any[] = [];
   process.env.APIFY_API_TOKEN = 'test';
   delete process.env.APIFY_LOCATIONS;
-  globalThis.fetch = async (_url, init) => {
+  globalThis.fetch = async (url, init) => {
     inputs.push(JSON.parse(String(init?.body)));
+    if (String(url).includes('linkedin-profile-scraper')) {
+      return new Response(JSON.stringify([{
+        linkedinUrl: 'https://www.linkedin.com/in/ana',
+        location: { country: 'India' },
+      }]));
+    }
     return new Response(JSON.stringify([{
       fullName: 'Ana', linkedinUrl: 'https://www.linkedin.com/in/ana', headline: 'Business coach',
       location: { countryCode: 'ES' },
@@ -65,8 +71,9 @@ test('all supported discovery paths preserve author location and restrict profil
     }
     process.env.APIFY_ACTOR_ID = 'harvestapi/linkedin-post-search';
     const posts = await buscarProspectosConApify();
-    assert.equal(posts[0].ubicacion, 'Nigeria');
+    assert.equal(posts[0].ubicacion, 'India');
     assert.equal(esProspectoValido(posts[0]), false);
+    assert.ok(inputs.some(i => i.queries?.length), 'post authors were not enriched');
   } finally {
     globalThis.fetch = originalFetch;
     process.env = originalEnv;

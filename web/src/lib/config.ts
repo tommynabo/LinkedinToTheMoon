@@ -9,10 +9,8 @@ export const DEFAULT_OPENAI_IMAGE_MODEL = 'gpt-image-1';
 
 export const PROSPECTOS_POR_DIA = 25;
 
-// El ICP acepta cualquier idioma/país, pero al menos este número de los PROSPECTOS_POR_DIA
-// elegidos cada día debe ser de España específicamente (ver engines/prospecting.ts) — el
-// resto de huecos puede ser de cualquier otro sitio, sin restricción. Nunca se incluyen
-// perfiles detectados como portugués/brasileño (exclusión total, no solo cuota).
+// Todos los prospectos deben ser de ES/GB/US/CA. Dentro de ese conjunto, este es el objetivo
+// diario de España; los huecos restantes se cubren solo con los otros tres países permitidos.
 export const MINIMO_ESPANA_POR_DIA = 15;
 
 // País usado por defecto para sesgar una parte de la búsqueda de Apify hacia España cuando

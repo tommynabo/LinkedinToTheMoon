@@ -93,13 +93,15 @@ function deduplicarPorUrl(items: Record<string, any>[]): ProspectoCrudo[] {
 }
 
 /** Lanza el/los actor(es) de Apify de forma síncrona y devuelve los candidatos normalizados. */
-export async function buscarProspectosConApify(): Promise<ProspectoCrudo[]> {
+export async function buscarProspectosConApify(
+  objetivo = PROSPECTOS_POR_DIA
+): Promise<ProspectoCrudo[]> {
   const token = process.env.APIFY_API_TOKEN;
   const actorId = process.env.APIFY_ACTOR_ID;
   if (!token || !actorId) return [];
 
   if (esActorDePosts(actorId)) {
-    return buscarProspectosPorPosts(actorId, token);
+    return buscarProspectosPorPosts(actorId, token, objetivo);
   }
 
   const searchQuery = process.env.APIFY_SEARCH_QUERY || SCORE_KEYWORDS.join(' OR ');
@@ -219,7 +221,8 @@ async function buscarConMemo23(
  */
 async function buscarProspectosPorPosts(
   actorId: string,
-  token: string
+  token: string,
+  objetivo: number
 ): Promise<ProspectoCrudo[]> {
   const keywordsPrincipales = process.env.APIFY_SEARCH_QUERY
     ? process.env.APIFY_SEARCH_QUERY.split(',').map((k) => k.trim()).filter(Boolean)
@@ -242,12 +245,13 @@ async function buscarProspectosPorPosts(
   ];
 
   console.log(`[Apify] Post-centric rotación del día ${dayOfYear}: ${rotacion.join(', ')}`);
+  const maxPosts = Math.max(25, Math.ceil(objetivo * 3));
 
   const resultados = await Promise.all(
     rotacion.map((keyword) =>
       ejecutarActorSync(actorId, token, {
         searchQueries: [keyword],
-        maxPosts: 75, // 75 posts por keyword * 4 = 300 posts totales (~$1.50)
+        maxPosts,
       })
     )
   );
@@ -286,6 +290,33 @@ async function buscarProspectosPorPosts(
       ubicacion: ubicacionPerfil(author) || ubicacionPerfil({ location: item.authorLocation }),
       vieneDePost: true,
     });
+  }
+
+  if (crudos.length > 0) {
+    try {
+      const profileActorId = process.env.APIFY_PROFILE_ACTOR_ID || 'harvestapi/linkedin-profile-scraper';
+      const ubicaciones = new Map<string, string>();
+      for (let index = 0; index < crudos.length; index += 10) {
+        const lote = crudos.slice(index, index + 10);
+        const perfiles = await ejecutarActorSync(profileActorId, token, {
+          profileScraperMode: 'Profile details no email ($4 per 1k)',
+          queries: lote.map((prospecto) => prospecto.url),
+        });
+        for (const perfil of perfiles) {
+          const url = perfil.linkedinUrl || perfil.profileUrl || perfil.url || '';
+          const ubicacion = ubicacionPerfil(perfil);
+          if (url && ubicacion) ubicaciones.set(normalizeLinkedInUrl(url), ubicacion);
+        }
+        const permitidos = [...ubicaciones.values()].filter((ubicacion) => paisPermitido(ubicacion)).length;
+        if (permitidos >= objetivo * 2) break;
+      }
+      for (const prospecto of crudos) {
+        prospecto.ubicacion = ubicaciones.get(normalizeLinkedInUrl(prospecto.url)) || prospecto.ubicacion;
+      }
+      console.log(`[Apify] Ubicación explícita obtenida para ${ubicaciones.size}/${crudos.length} autores.`);
+    } catch (error) {
+      console.error('[Apify] No se pudieron enriquecer las ubicaciones de los autores:', error);
+    }
   }
 
   return crudos;
