@@ -11,8 +11,8 @@
  * El esquema de entrada/salida depende del actor concreto que uses: esActorMemo23() decide
  * qué forma de input construir, y normalizarItem() acepta varios nombres de campo habituales
  * (de ambos actores) al normalizar la salida; ajústalo si usas un actor distinto. El input
- * de búsqueda por defecto usa las mismas palabras clave del ICP (ver SCORE_KEYWORDS en
- * config.ts).
+ * de búsqueda por defecto usa las mismas palabras clave del ICP (ver ONLINE_SEARCH_KEYWORDS en
+ * online.ts).
  *
  * Países admitidos: España, Reino Unido, Estados Unidos y Canadá. El filtro final
  * exige ubicación explícita del autor; una búsqueda sesgada no prueba su residencia.
@@ -23,9 +23,10 @@
  * (buscarUltimosPosts) — barato (~$0.002/post) y solo se llama para los prospectos que ya
  * pasaron el filtro/dedupe, nunca para todo el resultado bruto de la búsqueda.
  */
-import { PROSPECTOS_POR_DIA, SCORE_KEYWORDS, UBICACION_PRIORITARIA } from './config';
+import { PROSPECTOS_POR_DIA, UBICACION_PRIORITARIA } from './config';
 import { PAISES_BUSQUEDA, paisPermitido, ubicacionPerfil } from './geography';
-import { normalizeLinkedInUrl } from './validation';
+import { ONLINE_SEARCH_KEYWORDS } from './online';
+import { esProspectoValido, normalizeLinkedInUrl } from './validation';
 import type { ProspectoCrudo } from './types';
 
 export function tieneApifyConfigurado(): boolean {
@@ -104,7 +105,7 @@ export async function buscarProspectosConApify(
     return buscarProspectosPorPosts(actorId, token, objetivo);
   }
 
-  const searchQuery = process.env.APIFY_SEARCH_QUERY || SCORE_KEYWORDS.join(' OR ');
+  const searchQuery = process.env.APIFY_SEARCH_QUERY || ONLINE_SEARCH_KEYWORDS.join(' OR ');
   const locationsOverride = (process.env.APIFY_LOCATIONS || '')
     .split(',')
     .map((l) => l.trim())
@@ -167,11 +168,12 @@ async function buscarConMemo23(
 ): Promise<ProspectoCrudo[]> {
   const keywordsPrincipales = process.env.APIFY_SEARCH_QUERY
     ? process.env.APIFY_SEARCH_QUERY.split(',').map((k) => k.trim()).filter(Boolean)
-    : SCORE_KEYWORDS;
+    : ONLINE_SEARCH_KEYWORDS;
   const keywordsResto = process.env.APIFY_SEARCH_QUERY_GLOBAL
     ? process.env.APIFY_SEARCH_QUERY_GLOBAL.split(',').map((k) => k.trim()).filter(Boolean)
-    : ['coach online', 'consultor digital', 'growth partner', 'copywriter'];
+    : ONLINE_SEARCH_KEYWORDS;
   const ubicacionEspana = locationsOverride[0] || UBICACION_PRIORITARIA;
+  const ubicacionesResto = locationsOverride.length > 0 ? locationsOverride : PAISES_BUSQUEDA.slice(1);
 
   // Optimización de créditos: Usamos el día del año para rotar palabras clave y no buscar todas a la vez
   const now = new Date();
@@ -206,7 +208,7 @@ async function buscarConMemo23(
       ejecutarActorSync(actorId, token, { 
         mode: 'public', 
         keywords,
-        location: PAISES_BUSQUEDA[1 + dayOfYear % 3],
+        location: ubicacionesResto[dayOfYear % ubicacionesResto.length],
         maxResults: 100 // Límite incrementado
       }) 
     )
@@ -226,10 +228,10 @@ async function buscarProspectosPorPosts(
 ): Promise<ProspectoCrudo[]> {
   const keywordsPrincipales = process.env.APIFY_SEARCH_QUERY
     ? process.env.APIFY_SEARCH_QUERY.split(',').map((k) => k.trim()).filter(Boolean)
-    : SCORE_KEYWORDS;
+    : ONLINE_SEARCH_KEYWORDS;
   const keywordsResto = process.env.APIFY_SEARCH_QUERY_GLOBAL
     ? process.env.APIFY_SEARCH_QUERY_GLOBAL.split(',').map((k) => k.trim()).filter(Boolean)
-    : ['coach online', 'consultor digital', 'growth partner', 'copywriter'];
+    : ONLINE_SEARCH_KEYWORDS;
 
   // Rotamos keywords para no buscar todas a la vez y ahorrar costes.
   // Como ahora buscamos posts, 100 posts de 3 keywords = 300 posts (y 300 prospectos asegurados con post).
@@ -295,7 +297,7 @@ async function buscarProspectosPorPosts(
   if (crudos.length > 0) {
     try {
       const profileActorId = process.env.APIFY_PROFILE_ACTOR_ID || 'harvestapi/linkedin-profile-scraper';
-      const ubicaciones = new Map<string, string>();
+      const perfilesPorUrl = new Map<string, ProspectoCrudo>();
       for (let index = 0; index < crudos.length; index += 10) {
         const lote = crudos.slice(index, index + 10);
         const perfiles = await ejecutarActorSync(profileActorId, token, {
@@ -304,16 +306,21 @@ async function buscarProspectosPorPosts(
         });
         for (const perfil of perfiles) {
           const url = perfil.linkedinUrl || perfil.profileUrl || perfil.url || '';
-          const ubicacion = ubicacionPerfil(perfil);
-          if (url && ubicacion) ubicaciones.set(normalizeLinkedInUrl(url), ubicacion);
+          if (url) perfilesPorUrl.set(normalizeLinkedInUrl(url), normalizarItem(perfil));
         }
-        const permitidos = [...ubicaciones.values()].filter((ubicacion) => paisPermitido(ubicacion)).length;
+        const permitidos = [...perfilesPorUrl.values()].filter(esProspectoValido).length;
         if (permitidos >= objetivo * 2) break;
       }
       for (const prospecto of crudos) {
-        prospecto.ubicacion = ubicaciones.get(normalizeLinkedInUrl(prospecto.url)) || prospecto.ubicacion;
+        const perfil = perfilesPorUrl.get(normalizeLinkedInUrl(prospecto.url));
+        if (perfil) {
+          prospecto.ubicacion = perfil.ubicacion || prospecto.ubicacion;
+          prospecto.cargo = perfil.cargo || prospecto.cargo;
+          prospecto.bio = perfil.bio || prospecto.bio;
+          prospecto.empresa = perfil.empresa || prospecto.empresa;
+        }
       }
-      console.log(`[Apify] Ubicación explícita obtenida para ${ubicaciones.size}/${crudos.length} autores.`);
+      console.log(`[Apify] Ubicación explícita obtenida para ${perfilesPorUrl.size}/${crudos.length} autores.`);
     } catch (error) {
       console.error('[Apify] No se pudieron enriquecer las ubicaciones de los autores:', error);
     }
@@ -382,3 +389,4 @@ function normalizarItem(item: Record<string, any>): ProspectoCrudo {
     ubicacion: ubicacionPerfil(item),
   };
 }
+

@@ -29,7 +29,7 @@ test('location normalization uses explicit country, supports objects and rejects
 });
 
 test('final validation cannot use profile name, URL locale, bio or post to bypass location', () => {
-  const profile = { nombre: 'Ana', url: 'https://es.linkedin.com/in/ana', cargo: 'Business coach',
+  const profile = { nombre: 'Ana', url: 'https://es.linkedin.com/in/ana', cargo: 'Online business consultant',
     empresa: '', bio: 'Working with USA and Spain', ultimoPostTema: 'UK', ultimoPostFecha: null, seguidores: null };
   for (const ubicacion of ['', 'Lagos, Nigeria', 'Mumbai, India']) {
     assert.equal(esProspectoValido({ ...profile, ubicacion }), false);
@@ -79,3 +79,4 @@ test('all supported discovery paths preserve author location and restrict profil
     process.env = originalEnv;
   }
 });
+

@@ -134,3 +134,14 @@ npm ci
 node --import tsx --test tests/geography.test.ts
 npm run typecheck
 ```
+
+
+### Cualificación estricta de prospectos
+
+La entrada exige país explícito del perfil (ES, GB, US o CA) y evidencia profesional online en cargo/biografía. No se infiere residencia del idioma, nombre, clientes o tema del post. Ubicaciones ausentes o ambiguas se excluyen.
+
+Se aceptan roles profesionales con evidencia de servicios exclusivamente online/remotos o productos digitales nativos (por ejemplo, SaaS founder). CEO, consultor, copywriter, e-commerce o marketing digital por sí solos no acreditan una actividad exclusivamente online. Las menciones de actividad presencial/híbrida y las negaciones se excluyen de forma conservadora. Es un filtro de evidencia declarada, no una verificación externa del negocio: puede descartar perfiles válidos cuya descripción sea insuficiente.
+
+El mismo filtro se aplica a nuevas búsquedas, importaciones al procesarse, promoción de la reserva, visualización de pendientes, cambios a Pendiente/Comentado y personalización. No borra históricos. Los autores de posts se enriquecen con cargo y biografía además de país. Las búsquedas configuradas mediante APIFY_SEARCH_QUERY siguen pasando por la validación final.
+
+Pruebas sin llamadas reales a Apify: `npm test` desde `web/`.

@@ -10,6 +10,7 @@
  * cualquier otro. Por eso cada prompt le pide a Claude que detecte el idioma del propio
  * perfil (cargo/post/bio) y responda ÍNTEGRAMENTE en ese idioma, en vez de asumir español.
  */
+import { esFilaProspectoValida } from '../validation';
 import { ensureSchema, sql } from '../db';
 import { callClaude } from '../claude';
 import { generarAudioPersonalizado, tieneAudioHabilitado } from '../elevenlabs';
@@ -30,11 +31,13 @@ export async function personalizarMensajesYAudios(): Promise<ResultadoPersonaliz
   const { rows } = await sql<{
     id: number;
     nombre: string;
+    url_perfil: string;
+    ubicacion: string | null;
     cargo: string | null;
     dato_personalizado: string | null;
     ultimo_post_texto: string | null;
   }>`
-    SELECT id, nombre, cargo, dato_personalizado, ultimo_post_texto FROM prospectos
+    SELECT id, nombre, url_perfil, ubicacion, cargo, dato_personalizado, ultimo_post_texto FROM prospectos
     WHERE pais IN ('ES', 'GB', 'US', 'CA') AND estado = 'Pendiente' AND (texto_mensaje IS NULL OR texto_mensaje = '')
     ORDER BY score DESC, id ASC
   `;
@@ -43,6 +46,7 @@ export async function personalizarMensajesYAudios(): Promise<ResultadoPersonaliz
   let conComentario = 0;
 
   for (const row of rows) {
+    if (!esFilaProspectoValida(row)) continue;
     try {
       const ultimoPost = row.ultimo_post_texto?.trim() || null;
       const bio = row.dato_personalizado?.trim() || '';
@@ -215,11 +219,13 @@ export async function regenerarMensajesExistentes(
   const { rows } = await sql<{
     id: number;
     nombre: string;
+    url_perfil: string;
+    ubicacion: string | null;
     cargo: string | null;
     dato_personalizado: string | null;
     ultimo_post_texto: string | null;
   }>`
-    SELECT id, nombre, cargo, dato_personalizado, ultimo_post_texto FROM prospectos
+    SELECT id, nombre, url_perfil, ubicacion, cargo, dato_personalizado, ultimo_post_texto FROM prospectos
     WHERE pais IN ('ES', 'GB', 'US', 'CA') AND estado IN ('Pendiente', 'Comentado')
     ORDER BY score DESC, id ASC
     LIMIT ${limit} OFFSET ${offset}
@@ -233,6 +239,7 @@ export async function regenerarMensajesExistentes(
   let regenerados = 0;
 
   for (const row of rows) {
+    if (!esFilaProspectoValida(row)) continue;
     try {
       const ultimoPost = row.ultimo_post_texto?.trim() || null;
       const bio = row.dato_personalizado?.trim() || '';
@@ -261,10 +268,13 @@ export async function regenerarComentariosExistentes(
   const { rows } = await sql<{
     id: number;
     nombre: string;
+    url_perfil: string;
+    ubicacion: string | null;
     cargo: string | null;
+    dato_personalizado: string | null;
     ultimo_post_texto: string | null;
   }>`
-    SELECT id, nombre, cargo, ultimo_post_texto FROM prospectos
+    SELECT id, nombre, url_perfil, ubicacion, dato_personalizado, cargo, ultimo_post_texto FROM prospectos
     WHERE pais IN ('ES', 'GB', 'US', 'CA') AND estado IN ('Pendiente', 'Comentado')
       AND ultimo_post_texto IS NOT NULL
       AND LENGTH(ultimo_post_texto) >= ${MIN_POST_CHARS}
@@ -283,6 +293,7 @@ export async function regenerarComentariosExistentes(
   let regenerados = 0;
 
   for (const row of rows) {
+    if (!esFilaProspectoValida(row)) continue;
     try {
       const ultimoPost = row.ultimo_post_texto!.trim();
       const comentario = await generarComentarioPost(row.nombre, row.cargo || '', ultimoPost);
@@ -295,4 +306,5 @@ export async function regenerarComentariosExistentes(
 
   return { regenerados, total };
 }
+
 

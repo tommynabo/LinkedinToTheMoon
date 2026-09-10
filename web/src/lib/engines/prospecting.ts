@@ -10,8 +10,8 @@ import { buscarProspectosConApify, buscarUltimosPosts, tieneApifyConfigurado } f
 import { paisPermitido } from '../geography';
 import { detectarIdiomaAprox } from '../idioma';
 import { calcularScore, getUrlsConocidas } from '../scoring';
-import { esProspectoValido, normalizeLinkedInUrl } from '../validation';
-import type { ProspectoCrudo } from '../types';
+import { esFilaProspectoValida, esProspectoValido, normalizeLinkedInUrl } from '../validation';
+import type { ProspectoCrudo, ProspectoRow } from '../types';
 
 // Longitud mínima del texto de un post para que valga para comentar.
 // Un "tema" de 2-3 palabras del primer scraper NO cuenta como post real.
@@ -33,14 +33,13 @@ export async function buscarProspectosDeHoy(
   const limiteDiario = Math.max(1, Math.min(PROSPECTOS_POR_DIA, Math.floor(objetivoDiario)));
 
   // PASO 1: Comprobar el reservorio (Cola de Reserva)
-  const resultReserva = await sql`
-    SELECT id FROM prospectos 
+  const resultReserva = await sql<ProspectoRow>`
+    SELECT * FROM prospectos
     WHERE estado = 'Reserva' AND pais IN ('ES', 'GB', 'US', 'CA')
     ORDER BY score DESC, created_at ASC 
-    LIMIT ${limiteDiario}
   `;
   
-  const recuperadosDeReserva = resultReserva.rows;
+  const recuperadosDeReserva = resultReserva.rows.filter(esFilaProspectoValida).slice(0, limiteDiario);
   let nuevosPromovidos = 0;
   let fuente: ResultadoProspeccion['fuente'] = 'ninguna';
   
@@ -50,7 +49,7 @@ export async function buscarProspectosDeHoy(
       await sql`
         UPDATE prospectos 
         SET estado = 'Pendiente', fecha_extraccion = CURRENT_DATE 
-        WHERE id = ${id}
+        WHERE id = ${id} AND estado = 'Reserva'
       `;
     }
     nuevosPromovidos = ids.length;
@@ -296,3 +295,4 @@ export async function archivarProspectosProcesados(): Promise<number> {
 
   return rows.length;
 }
+

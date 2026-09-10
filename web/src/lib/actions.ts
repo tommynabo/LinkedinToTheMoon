@@ -4,6 +4,8 @@
  */
 'use server';
 
+import { esFilaProspectoValida } from './validation';
+import type { ProspectoRow } from './types';
 import { revalidatePath } from 'next/cache';
 import { ensureSchema, sql } from './db';
 import { ejecutarRutinaDiaria } from './engines/daily';
@@ -16,6 +18,10 @@ export async function updateProspectoEstado(formData: FormData): Promise<void> {
   const estado = String(formData.get('estado') || 'Pendiente');
   if (!id) return;
   if (!['Pendiente', 'Comentado', 'Enviado', 'Descartado'].includes(estado)) return;
+  if (estado === 'Pendiente' || estado === 'Comentado') {
+    const { rows } = await sql<ProspectoRow>`SELECT * FROM prospectos WHERE id = ${id}`;
+    if (!rows[0] || !esFilaProspectoValida(rows[0])) return;
+  }
   // Los Comentados históricos pueden cerrarse, pero nunca volver a entrar en Pendiente.
   await sql`UPDATE prospectos SET estado = ${estado} WHERE id = ${id}
     AND (
@@ -138,3 +144,4 @@ export async function regenerarMensajesPendientesAction(): Promise<void> {
   await regenerarMensajesExistentes();
   revalidatePath('/prospectos');
 }
+

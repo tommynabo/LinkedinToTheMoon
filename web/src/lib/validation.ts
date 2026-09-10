@@ -6,6 +6,7 @@
  * anti-bot de LinkedIn), así que esto valida forma/completitud, no "el perfil existe".
  */
 import { LINKEDIN_URL_REGEX, BLACKLIST_KEYWORDS } from './config';
+import { esProfesionalOnline } from './online';
 import { paisPermitido } from './geography';
 import type { ProspectoCrudo } from './types';
 
@@ -35,5 +36,16 @@ export function esProspectoValido(p: ProspectoCrudo): boolean {
     return false;
   }
 
-  return true;
+  return esProfesionalOnline(p.cargo, p.bio);
+}
+
+
+/** Revalidate persisted rows before promotion, display or generating outreach. */
+export function esFilaProspectoValida(row: {
+  nombre: string; url_perfil: string; cargo: string | null;
+  dato_personalizado: string | null; ubicacion?: string | null;
+}): boolean {
+  return esProspectoValido({ nombre: row.nombre, url: row.url_perfil,
+    cargo: row.cargo || '', bio: row.dato_personalizado || '', ubicacion: row.ubicacion,
+    empresa: '', ultimoPostTema: '', ultimoPostFecha: null, seguidores: null });
 }

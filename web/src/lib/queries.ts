@@ -2,6 +2,7 @@
  * queries.ts
  * Lecturas de solo consulta usadas por las páginas del dashboard.
  */
+import { esFilaProspectoValida } from './validation';
 import { ensureSchema, sql } from './db';
 import type { CronRunRow, CrmRow, IdeaRow, PostRow, ProspectoRow } from './types';
 
@@ -19,7 +20,7 @@ export async function getProspectos(): Promise<ProspectoRow[]> {
        OR (estado = 'Pendiente' AND pais IN ('ES', 'GB', 'US', 'CA'))
     ORDER BY created_at ASC LIMIT 500
   `;
-  return rows;
+  return rows.filter(row => row.estado !== 'Pendiente' || esFilaProspectoValida(row));
 }
 
 export async function getCrm(): Promise<CrmRow[]> {
@@ -79,3 +80,4 @@ export async function getResumenKpis(): Promise<ResumenKpis> {
     tasaRespuesta: total > 0 ? `${Math.round((respondieron / total) * 100)}%` : 'N/D',
   };
 }
+

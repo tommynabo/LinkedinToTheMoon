@@ -33,6 +33,8 @@ export interface PostRow {
 }
 
 export interface ProspectoRow {
+  ubicacion?: string | null;
+  pais?: string | null;
   id: number;
   fecha_extraccion: string;
   nombre: string;
@@ -77,3 +79,4 @@ export interface CronRunRow {
   resumen: string;
   hubo_error: boolean;
 }
+
