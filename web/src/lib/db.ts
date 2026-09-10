@@ -2,8 +2,31 @@
  * db.ts
  * Conexión a Vercel Postgres + creación idempotente del esquema. No hace falta ninguna
  * migración manual: la primera petición (cron o página) crea las tablas si no existen.
+ *
+ * NOTA: Cuando `vercel env pull` genera .env.local, pone las variables con el prefijo
+ * del proyecto (ej. `linkedintothemoon_POSTGRES_URL`). El siguiente bloque las copia
+ * a los nombres estándar que espera @vercel/postgres, así el servidor local funciona
+ * sin tocar nada a mano.
  */
 import { sql } from '@vercel/postgres';
+
+// Resuelve las variables de entorno prefijadas que genera `vercel env pull`.
+// Si ya existe POSTGRES_URL directamente (producción / .env), no hace nada.
+const PREFIX = 'linkedintothemoon_';
+const VARS_TO_ALIAS = [
+  'POSTGRES_URL',
+  'POSTGRES_URL_NON_POOLING',
+  'POSTGRES_USER',
+  'POSTGRES_HOST',
+  'POSTGRES_PASSWORD',
+  'POSTGRES_DATABASE',
+  'DATABASE_URL',
+] as const;
+for (const v of VARS_TO_ALIAS) {
+  if (!process.env[v] && process.env[`${PREFIX}${v}`]) {
+    process.env[v] = process.env[`${PREFIX}${v}`];
+  }
+}
 
 export { sql };
 
