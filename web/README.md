@@ -116,9 +116,9 @@ del autor, el sistema la completa por lotes de 10 con `APIFY_PROFILE_ACTOR_ID` (
 La migración idempotente añade `ubicacion` y `pais` a `prospectos`, y `ubicacion` a
 `prospectos_import`. Las importaciones requieren una octava columna, País (preferiblemente
 TSV para no dividir ubicaciones con comas). Los registros antiguos sin país se conservan,
-pero no aparecen en la cola activa, no salen de Reserva ni pueden pasar a Comentado o
-recibir nuevos mensajes. Los históricos Enviado/Descartado y CRM se conservan visibles.
-No se asigna retrospectivamente un país sin evidencia.
+pero solo reaparecen si ya estaban en Comentado/Enviado/Descartado; nunca vuelven a Pendiente,
+no salen de Reserva ni reciben nuevos mensajes. Un Comentado histórico sí puede cerrarse como
+Enviado o Descartado. No se asigna retrospectivamente un país sin evidencia.
 
 Las búsquedas de perfiles se restringen geográficamente; `APIFY_LOCATIONS` no puede ampliar
 la lista permitida. La reserva, las lecturas del dashboard, la personalización y los cambios

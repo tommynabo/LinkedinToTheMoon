@@ -15,7 +15,8 @@ export async function getProspectos(): Promise<ProspectoRow[]> {
   await ensureSchema();
   const { rows } = await sql<ProspectoRow>`
     SELECT * FROM prospectos
-    WHERE estado <> 'Reserva' AND pais IN ('ES', 'GB', 'US', 'CA')
+    WHERE estado IN ('Comentado', 'Enviado', 'Descartado')
+       OR (estado = 'Pendiente' AND pais IN ('ES', 'GB', 'US', 'CA'))
     ORDER BY created_at ASC LIMIT 500
   `;
   return rows;

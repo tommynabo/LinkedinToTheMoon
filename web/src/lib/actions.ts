@@ -16,9 +16,13 @@ export async function updateProspectoEstado(formData: FormData): Promise<void> {
   const estado = String(formData.get('estado') || 'Pendiente');
   if (!id) return;
   if (!['Pendiente', 'Comentado', 'Enviado', 'Descartado'].includes(estado)) return;
-  // Enforce on the server as well as discovery, including legacy rows with no country.
+  // Los Comentados históricos pueden cerrarse, pero nunca volver a entrar en Pendiente.
   await sql`UPDATE prospectos SET estado = ${estado} WHERE id = ${id}
-    AND (${estado} = 'Descartado' OR pais IN ('ES', 'GB', 'US', 'CA'))`;
+    AND (
+      pais IN ('ES', 'GB', 'US', 'CA')
+      OR ${estado} = 'Descartado'
+      OR (prospectos.estado = 'Comentado' AND ${estado} = 'Enviado')
+    )`;
 
   revalidatePath('/prospectos');
 }
