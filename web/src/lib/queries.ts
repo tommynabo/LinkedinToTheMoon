@@ -2,7 +2,6 @@
  * queries.ts
  * Lecturas de solo consulta usadas por las páginas del dashboard.
  */
-import { esFilaProspectoValida } from './validation';
 import { ensureSchema, sql } from './db';
 import type { CronRunRow, CrmRow, IdeaRow, PostRow, ProspectoRow } from './types';
 
@@ -14,13 +13,16 @@ export async function getPosts(): Promise<PostRow[]> {
 
 export async function getProspectos(): Promise<ProspectoRow[]> {
   await ensureSchema();
+  // Los leads ya fueron validados por el motor de prospección al insertarlos.
+  // No re-validamos aquí para evitar un doble filtro que bloquearía leads legítimos
+  // (especialmente los que vienen del actor de posts y pueden no tener pais/ubicacion).
   const { rows } = await sql<ProspectoRow>`
     SELECT * FROM prospectos
     WHERE estado IN ('Pendiente', 'Comentado', 'Enviado', 'Descartado')
       AND estado != 'Reserva'
     ORDER BY created_at ASC LIMIT 500
   `;
-  return rows.filter(row => row.estado !== 'Pendiente' || esFilaProspectoValida(row));
+  return rows;
 }
 
 export async function getCrm(): Promise<CrmRow[]> {

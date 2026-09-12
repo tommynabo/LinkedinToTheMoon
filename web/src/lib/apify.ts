@@ -25,7 +25,7 @@
  */
 import { PROSPECTOS_POR_DIA, UBICACION_PRIORITARIA } from './config';
 import { PAISES_BUSQUEDA, paisPermitido, ubicacionPerfil } from './geography';
-import { ONLINE_SEARCH_KEYWORDS } from './online';
+import { ONLINE_SEARCH_KEYWORDS, esProfesionalOnline } from './online';
 import { esProspectoValido, normalizeLinkedInUrl } from './validation';
 import type { ProspectoCrudo } from './types';
 
@@ -234,7 +234,7 @@ async function buscarProspectosPorPosts(
     : ONLINE_SEARCH_KEYWORDS;
 
   // Rotamos keywords para no buscar todas a la vez y ahorrar costes.
-  // Como ahora buscamos posts, 100 posts de 3 keywords = 300 posts (y 300 prospectos asegurados con post).
+  // 4 keywords × maxPosts posts = pool amplio para filtrar el ICP.
   const now = new Date();
   const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 1000 / 60 / 60 / 24);
   
@@ -247,7 +247,8 @@ async function buscarProspectosPorPosts(
   ];
 
   console.log(`[Apify] Post-centric rotación del día ${dayOfYear}: ${rotacion.join(', ')}`);
-  const maxPosts = Math.max(25, Math.ceil(objetivo * 3));
+  // Pedimos más posts para compensar los descartes por país/ICP (los países ES/GB tienen menos volumen).
+  const maxPosts = Math.max(50, Math.ceil(objetivo * 5));
 
   const resultados = await Promise.all(
     rotacion.map((keyword) =>
@@ -262,7 +263,7 @@ async function buscarProspectosPorPosts(
   const vistos = new Set<string>();
 
   for (const item of resultados.flat()) {
-    // Apoyamos tanto harvestapi como memo23/otros
+    // Soportamos tanto harvestapi como memo23/otros
     const author = item.author || item.authorProfile || {};
     const url = author.linkedinUrl || author.url || item.authorUrl || item.linkedinUrl;
     if (!url || url.includes('/company/')) continue; // ignorar posts de empresa
@@ -294,12 +295,26 @@ async function buscarProspectosPorPosts(
     });
   }
 
-  if (crudos.length > 0) {
+  console.log(`[Apify] Posts scraper: ${crudos.length} autores únicos encontrados.`);
+
+  // Pre-filtrado ICP rápido con datos del post (cargo/bio del autor).
+  // Esto descarta la basura obvia ANTES del enrichment costoso de perfil.
+  // Los que no pasan esProspectoValido aquí tienen cargo vacío o claramente no-ICP.
+  const preFiltradasICP = crudos.filter((p) => {
+    // Si no tiene cargo en el post, no filtramos aún (el enrichment lo completará).
+    if (!p.cargo?.trim()) return true;
+    // Si tiene cargo y claramente no es ICP, descartamos ya.
+    return esProfesionalOnline(p.cargo, p.bio);
+  });
+  console.log(`[Apify] Tras pre-filtrado ICP por cargo del post: ${preFiltradasICP.length}/${crudos.length} candidatos.`);
+
+  if (preFiltradasICP.length > 0) {
     try {
       const profileActorId = process.env.APIFY_PROFILE_ACTOR_ID || 'harvestapi/linkedin-profile-scraper';
       const perfilesPorUrl = new Map<string, ProspectoCrudo>();
-      for (let index = 0; index < crudos.length; index += 10) {
-        const lote = crudos.slice(index, index + 10);
+      // Enriquecemos en lotes de 10. Sin break early: necesitamos datos de todos para el filtro final.
+      for (let index = 0; index < preFiltradasICP.length; index += 10) {
+        const lote = preFiltradasICP.slice(index, index + 10);
         const perfiles = await ejecutarActorSync(profileActorId, token, {
           profileScraperMode: 'Profile details no email ($4 per 1k)',
           queries: lote.map((prospecto) => prospecto.url),
@@ -308,10 +323,9 @@ async function buscarProspectosPorPosts(
           const url = perfil.linkedinUrl || perfil.profileUrl || perfil.url || '';
           if (url) perfilesPorUrl.set(normalizeLinkedInUrl(url), normalizarItem(perfil));
         }
-        const permitidos = [...perfilesPorUrl.values()].filter(esProspectoValido).length;
-        if (permitidos >= objetivo * 2) break;
       }
-      for (const prospecto of crudos) {
+      // Actualizar los candidatos con los datos del perfil enriquecido.
+      for (const prospecto of preFiltradasICP) {
         const perfil = perfilesPorUrl.get(normalizeLinkedInUrl(prospecto.url));
         if (perfil) {
           prospecto.ubicacion = perfil.ubicacion || prospecto.ubicacion;
@@ -320,13 +334,15 @@ async function buscarProspectosPorPosts(
           prospecto.empresa = perfil.empresa || prospecto.empresa;
         }
       }
-      console.log(`[Apify] Ubicación explícita obtenida para ${perfilesPorUrl.size}/${crudos.length} autores.`);
+      console.log(`[Apify] Ubicación explícita obtenida para ${perfilesPorUrl.size}/${preFiltradasICP.length} autores.`);
     } catch (error) {
       console.error('[Apify] No se pudieron enriquecer las ubicaciones de los autores:', error);
     }
   }
 
-  return crudos;
+  // Devolvemos los pre-filtrados (ya enriquecidos). El filtro final esProspectoValido()
+  // en prospecting.ts descartará los que tras el enrichment no sean ICP o no tengan país válido.
+  return preFiltradasICP;
 }
 
 /**
