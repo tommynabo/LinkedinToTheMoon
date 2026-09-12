@@ -4,6 +4,7 @@ import { archivarEnviadosAction, deleteProspectoAction, updateProspectoEstado, r
 import { CopyButton } from './CopyButton';
 import { DeleteButton } from './DeleteButton';
 import { EstadoSelect } from './EstadoSelect';
+import { BuscarMasButton } from './BuscarMasButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,6 +47,8 @@ export default async function ProspectosPage({
         personalizados. Deja el comentario en su post, envía la conexión desde LinkedIn con el
         mensaje de aquí, luego marca el estado. Cuando termines el día, pulsa "Mover al CRM".
       </p>
+
+      <BuscarMasButton />
 
       <form action={archivarEnviadosAction} style={{ marginBottom: 16 }}>
         <button type="submit">📤 Mover Enviados/Descartados al CRM</button>

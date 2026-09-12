@@ -9,7 +9,7 @@ import type { ProspectoRow } from './types';
 import { revalidatePath } from 'next/cache';
 import { ensureSchema, sql } from './db';
 import { ejecutarRutinaDiaria } from './engines/daily';
-import { archivarProspectosProcesados } from './engines/prospecting';
+import { archivarProspectosProcesados, buscarProspectosDeHoy } from './engines/prospecting';
 import { regenerarMensajesExistentes } from './engines/personalization';
 
 export async function updateProspectoEstado(formData: FormData): Promise<void> {
@@ -23,12 +23,8 @@ export async function updateProspectoEstado(formData: FormData): Promise<void> {
     if (!rows[0] || !esFilaProspectoValida(rows[0])) return;
   }
   // Los Comentados históricos pueden cerrarse, pero nunca volver a entrar en Pendiente.
-  await sql`UPDATE prospectos SET estado = ${estado} WHERE id = ${id}
-    AND (
-      pais IN ('ES', 'GB', 'US', 'CA')
-      OR ${estado} = 'Descartado'
-      OR (prospectos.estado = 'Comentado' AND ${estado} = 'Enviado')
-    )`;
+  // No filtramos por pais aquí: los leads del actor de posts pueden no tener pais y son válidos.
+  await sql`UPDATE prospectos SET estado = ${estado} WHERE id = ${id}`;
 
   revalidatePath('/prospectos');
 }
@@ -145,3 +141,19 @@ export async function regenerarMensajesPendientesAction(): Promise<void> {
   revalidatePath('/prospectos');
 }
 
+/**
+ * Busca más prospectos bajo demanda desde la UI, hasta llegar a 25 en Pendiente.
+ * Solo ejecuta el motor de prospección (sin generar post ni otro contenido).
+ */
+export async function buscarMasProspectosAction(): Promise<string> {
+  const { rows: pendientesActuales } = await sql<{ cnt: string }>`
+    SELECT COUNT(*)::text AS cnt FROM prospectos WHERE estado = 'Pendiente'
+  `;
+  const pendientes = Number(pendientesActuales[0]?.cnt || 0);
+  const objetivo = Math.max(1, 25 - pendientes);
+  if (objetivo <= 0) return `Ya tienes 25 o más prospectos en Pendiente (${pendientes}).`;
+
+  const resultado = await buscarProspectosDeHoy(objetivo);
+  revalidatePath('/prospectos');
+  return `¡Hecho! Encontrados: ${resultado.nuevos} nuevos (total pendiente ahora: ${pendientes + resultado.nuevos}). Fuente: ${resultado.fuente}.`;
+}

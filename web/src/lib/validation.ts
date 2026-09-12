@@ -25,6 +25,7 @@ export function esUrlLinkedInValida(url: string): boolean {
   return LINKEDIN_URL_REGEX.test((url || '').trim());
 }
 
+/** Validación estricta para INSERTAR un prospecto nuevo: país obligatorio + ICP online. */
 export function esProspectoValido(p: ProspectoCrudo): boolean {
   if (!paisPermitido(p.ubicacion)) return false;
   if (!p.nombre?.trim() || !p.cargo?.trim() || !esUrlLinkedInValida(p.url)) {
@@ -40,12 +41,19 @@ export function esProspectoValido(p: ProspectoCrudo): boolean {
 }
 
 
-/** Revalidate persisted rows before promotion, display or generating outreach. */
+/**
+ * Validación ligera para rows YA GUARDADAS en BD (cambios de estado, display, outreach).
+ * Solo verifica que los campos estructurales mínimos están presentes (nombre, url, cargo).
+ * No re-valida el país porque ya se comprobó en esProspectoValido() al insertar:
+ * los leads del actor de posts pueden tener pais=NULL y seguir siendo válidos ICP.
+ */
 export function esFilaProspectoValida(row: {
   nombre: string; url_perfil: string; cargo: string | null;
   dato_personalizado: string | null; ubicacion?: string | null;
 }): boolean {
-  return esProspectoValido({ nombre: row.nombre, url: row.url_perfil,
-    cargo: row.cargo || '', bio: row.dato_personalizado || '', ubicacion: row.ubicacion,
-    empresa: '', ultimoPostTema: '', ultimoPostFecha: null, seguidores: null });
+  return Boolean(
+    row.nombre?.trim() &&
+    esUrlLinkedInValida(row.url_perfil) &&
+    row.cargo?.trim()
+  );
 }
