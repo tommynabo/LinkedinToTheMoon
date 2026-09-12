@@ -250,8 +250,19 @@ async function buscarProspectosPorPosts(
   // Pedimos más posts para compensar los descartes por país/ICP (los países ES/GB tienen menos volumen).
   const maxPosts = Math.max(50, Math.ceil(objetivo * 5));
 
+  // Inyectar modificadores de ubicación para reducir resultados globales (que serían descartados luego)
+  const locEspana = process.env.APIFY_LOCATIONS ? process.env.APIFY_LOCATIONS.split(',')[0].trim() : 'Spain';
+  const locGlobal = process.env.APIFY_LOCATIONS_GLOBAL ? process.env.APIFY_LOCATIONS_GLOBAL.split(',')[0].trim() : 'United States';
+  
+  const rotacionConUbicacion = [
+    `${rotacion[0]} AND ${locEspana}`,
+    `${rotacion[1]} AND ${locEspana}`,
+    `${rotacion[2]} AND ${locGlobal}`,
+    `${rotacion[3]} AND ${locGlobal}`,
+  ];
+
   const resultados = await Promise.all(
-    rotacion.map((keyword) =>
+    rotacionConUbicacion.map((keyword) =>
       ejecutarActorSync(actorId, token, {
         searchQueries: [keyword],
         maxPosts,

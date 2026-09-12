@@ -155,5 +155,10 @@ export async function buscarMasProspectosAction(): Promise<string> {
 
   const resultado = await buscarProspectosDeHoy(objetivo);
   revalidatePath('/prospectos');
+  
+  if (resultado.nuevos === 0) {
+    return `Se encontraron candidatos pero ninguno pasó los filtros. Descartados por validación (País/ICP): ${resultado.descartadosPorValidacion}. Fuente: ${resultado.fuente}. Intentaremos de nuevo con otros términos mañana.`;
+  }
+  
   return `¡Hecho! Encontrados: ${resultado.nuevos} nuevos (total pendiente ahora: ${pendientes + resultado.nuevos}). Fuente: ${resultado.fuente}.`;
 }
