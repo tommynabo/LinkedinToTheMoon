@@ -18,8 +18,12 @@ export function esProfesionalOnline(cargo: string | null | undefined, bio: strin
   const native = /\b(saas|software as a service|digital products?|productos? digitales?|infoproductos?)\b/;
   const remoteService = /\b(remote|remot[oa])\b/.test(title)
     && /\b(developer|desarrollador[a]?|software|copywriter|designer|disenador[a]?|consultant|consultor[a]?)\b/.test(title);
+  
+  // Roles que por su naturaleza en el mundo B2B moderno son nativamente digitales/online
+  const digitalNativeRoles = /\b(seo|growth|ads|copywriter|ghostwriter|creative strategist|conversion|content|marketing|ecommerce|e commerce|d2c)\b/;
+
   return role.test(title) && !physical.test(text) && !negated.test(text)
-    && (explicit.test(text) || native.test(title) || remoteService);
+    && (explicit.test(text) || native.test(title) || remoteService || digitalNativeRoles.test(title));
 }
 
 function normalizar(value: string | null | undefined): string {
