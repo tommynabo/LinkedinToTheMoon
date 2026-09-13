@@ -153,7 +153,18 @@ export async function buscarMasProspectosAction(): Promise<string> {
   const objetivo = Math.max(1, 25 - pendientes);
   if (objetivo <= 0) return `Ya tienes 25 o más prospectos en Pendiente (${pendientes}).`;
 
-  const resultado = await buscarProspectosDeHoy(objetivo);
+  // No dejar que un fallo del motor (Apify caído, límite de plan superado, etc.) reviente
+  // el Server Action en silencio: el botón debe mostrar SIEMPRE un mensaje al usuario.
+  let resultado;
+  try {
+    resultado = await buscarProspectosDeHoy(objetivo);
+  } catch (err) {
+    const mensaje = (err as Error).message || 'Error desconocido';
+    if (mensaje.includes('403') || mensaje.toLowerCase().includes('usage hard limit')) {
+      return `❌ Apify ha bloqueado la búsqueda: se ha superado el límite de gasto mensual de tu cuenta Apify. Sube el límite/plan en console.apify.com → Settings → Billing, o espera al reinicio del ciclo.`;
+    }
+    return `❌ Falló la búsqueda de prospectos: ${mensaje}`;
+  }
   revalidatePath('/prospectos');
   
   if (resultado.nuevos === 0) {

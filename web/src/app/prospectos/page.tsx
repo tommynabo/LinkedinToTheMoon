@@ -7,6 +7,7 @@ import { EstadoSelect } from './EstadoSelect';
 import { BuscarMasButton } from './BuscarMasButton';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 300; // Permitir que el Server Action tarde hasta 5 mins
 
 const ESTADOS = ['Pendiente', 'Comentado', 'Enviado', 'Descartado'] as const;
 

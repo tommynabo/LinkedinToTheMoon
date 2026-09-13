@@ -10,8 +10,12 @@ export function BuscarMasButton() {
   function handleClick() {
     setMensaje(null);
     startTransition(async () => {
-      const result = await buscarMasProspectosAction();
-      setMensaje(result);
+      try {
+        const result = await buscarMasProspectosAction();
+        setMensaje(result);
+      } catch (err) {
+        setMensaje(`❌ Error inesperado: ${(err as Error).message || 'desconocido'}`);
+      }
     });
   }
 
@@ -25,8 +29,14 @@ export function BuscarMasButton() {
         {pending ? '🔍 Buscando prospectos… (puede tardar 2-3 min)' : '🔍 Buscar más prospectos (hasta 25)'}
       </button>
       {mensaje && (
-        <p style={{ marginTop: 8, color: 'var(--success, #22c55e)', fontWeight: 500 }}>
-          ✅ {mensaje}
+        <p
+          style={{
+            marginTop: 8,
+            color: mensaje.startsWith('❌') ? 'var(--danger, #ef4444)' : 'var(--success, #22c55e)',
+            fontWeight: 500,
+          }}
+        >
+          {mensaje.startsWith('❌') ? mensaje : `✅ ${mensaje}`}
         </p>
       )}
     </div>
