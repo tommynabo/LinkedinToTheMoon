@@ -80,6 +80,45 @@ async function ejecutarActorSync(
   throw lastError;
 }
 
+/**
+ * Enriquecimiento de perfiles vía `harvestapi/linkedin-profile-scraper`: el modo `public`
+ * (sin cookies) de los actores de búsqueda casi siempre devuelve `headline`/`location` vacíos
+ * o con texto genérico de LinkedIn para visitantes anónimos, lo que hace fallar la
+ * validación de país/ICP aunque el candidato sea válido. Rellena ubicacion/cargo/bio/empresa
+ * reales para cada URL antes de validar. Muta los objetos en el array recibido. Nunca lanza:
+ * si el enrichment falla, los candidatos quedan tal cual (los descartará la validación normal).
+ */
+async function enriquecerPerfiles(candidatos: ProspectoCrudo[], token: string): Promise<void> {
+  if (candidatos.length === 0) return;
+  const profileActorId = process.env.APIFY_PROFILE_ACTOR_ID || 'harvestapi/linkedin-profile-scraper';
+  try {
+    const perfilesPorUrl = new Map<string, ProspectoCrudo>();
+    for (let index = 0; index < candidatos.length; index += 10) {
+      const lote = candidatos.slice(index, index + 10);
+      const perfiles = await ejecutarActorSync(profileActorId, token, {
+        profileScraperMode: 'Profile details no email ($4 per 1k)',
+        queries: lote.map((prospecto) => prospecto.url),
+      });
+      for (const perfil of perfiles) {
+        const url = perfil.linkedinUrl || perfil.profileUrl || perfil.url || '';
+        if (url) perfilesPorUrl.set(normalizeLinkedInUrl(url), normalizarItem(perfil));
+      }
+    }
+    for (const prospecto of candidatos) {
+      const perfil = perfilesPorUrl.get(normalizeLinkedInUrl(prospecto.url));
+      if (perfil) {
+        prospecto.ubicacion = perfil.ubicacion || prospecto.ubicacion;
+        prospecto.cargo = perfil.cargo || prospecto.cargo;
+        prospecto.bio = perfil.bio || prospecto.bio;
+        prospecto.empresa = perfil.empresa || prospecto.empresa;
+      }
+    }
+    console.log(`[Apify] Enrichment de perfil obtenido para ${perfilesPorUrl.size}/${candidatos.length} candidatos.`);
+  } catch (error) {
+    console.error('[Apify] No se pudieron enriquecer los perfiles:', error);
+  }
+}
+
 function deduplicarPorUrl(items: Record<string, any>[]): ProspectoCrudo[] {
   const vistos = new Set<string>();
   const candidatos: ProspectoCrudo[] = [];
@@ -214,7 +253,12 @@ async function buscarConMemo23(
     )
   );
 
-  return deduplicarPorUrl([...resultadosEspana.flat(), ...resultadosResto.flat()]);
+  const candidatos = deduplicarPorUrl([...resultadosEspana.flat(), ...resultadosResto.flat()]);
+  // El modo `public` casi nunca devuelve headline/location reales (LinkedIn muestra el muro
+  // genérico de "hazte miembro" a visitantes anónimos) — sin esto, la validación de país/ICP
+  // descarta casi todo. Ver /memories/repo para el detalle de esta medición (2026-09-13).
+  await enriquecerPerfiles(candidatos, token);
+  return candidatos;
 }
 
 /**
@@ -320,35 +364,7 @@ async function buscarProspectosPorPosts(
   console.log(`[Apify] Tras pre-filtrado ICP por cargo del post: ${preFiltradasICP.length}/${crudos.length} candidatos.`);
 
   if (preFiltradasICP.length > 0) {
-    try {
-      const profileActorId = process.env.APIFY_PROFILE_ACTOR_ID || 'harvestapi/linkedin-profile-scraper';
-      const perfilesPorUrl = new Map<string, ProspectoCrudo>();
-      // Enriquecemos en lotes de 10. Sin break early: necesitamos datos de todos para el filtro final.
-      for (let index = 0; index < preFiltradasICP.length; index += 10) {
-        const lote = preFiltradasICP.slice(index, index + 10);
-        const perfiles = await ejecutarActorSync(profileActorId, token, {
-          profileScraperMode: 'Profile details no email ($4 per 1k)',
-          queries: lote.map((prospecto) => prospecto.url),
-        });
-        for (const perfil of perfiles) {
-          const url = perfil.linkedinUrl || perfil.profileUrl || perfil.url || '';
-          if (url) perfilesPorUrl.set(normalizeLinkedInUrl(url), normalizarItem(perfil));
-        }
-      }
-      // Actualizar los candidatos con los datos del perfil enriquecido.
-      for (const prospecto of preFiltradasICP) {
-        const perfil = perfilesPorUrl.get(normalizeLinkedInUrl(prospecto.url));
-        if (perfil) {
-          prospecto.ubicacion = perfil.ubicacion || prospecto.ubicacion;
-          prospecto.cargo = perfil.cargo || prospecto.cargo;
-          prospecto.bio = perfil.bio || prospecto.bio;
-          prospecto.empresa = perfil.empresa || prospecto.empresa;
-        }
-      }
-      console.log(`[Apify] Ubicación explícita obtenida para ${perfilesPorUrl.size}/${preFiltradasICP.length} autores.`);
-    } catch (error) {
-      console.error('[Apify] No se pudieron enriquecer las ubicaciones de los autores:', error);
-    }
+    await enriquecerPerfiles(preFiltradasICP, token);
   }
 
   // Devolvemos los pre-filtrados (ya enriquecidos). El filtro final esProspectoValido()
