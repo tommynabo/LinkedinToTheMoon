@@ -145,7 +145,6 @@ function deduplicarPorUrl(items: Record<string, any>[]): ProspectoCrudo[] {
  */
 export async function buscarProspectosConApify(
   keyword?: string,
-  location?: string,
 ): Promise<ProspectoCrudo[]> {
   const token = process.env.APIFY_API_TOKEN;
   const actorId = process.env.APIFY_ACTOR_ID;
@@ -165,18 +164,17 @@ export async function buscarProspectosConApify(
     (process.env.APIFY_SEARCH_QUERY ? process.env.APIFY_SEARCH_QUERY.split(',')[0].trim() : null) ??
     ONLINE_SEARCH_KEYWORDS[dayOfYear % ONLINE_SEARCH_KEYWORDS.length];
 
-  const locationFinal = location ?? process.env.APIFY_LOCATIONS?.split(',')[0]?.trim() ?? UBICACION_PRIORITARIA;
-
   if (esActorMemo23(actorId)) {
-    return buscarConMemo23(actorId, token, keywordFinal, locationFinal);
+    return buscarConMemo23(actorId, token, keywordFinal);
   }
 
-  // Fallback para harvestapi u otros actores
+  // Fallback para harvestapi u otros actores (sí soportan location como filtro real)
+  const locationFinal = process.env.APIFY_LOCATIONS?.split(',')[0]?.trim() ?? UBICACION_PRIORITARIA;
   const items = await ejecutarActorSync(actorId, token, {
     profileScraperMode: 'Full',
     searchQuery: keywordFinal,
-    maxItems: 25,
-    takePages: 1,
+    maxItems: 50,
+    takePages: 2,
     locations: [locationFinal],
   });
   return deduplicarPorUrl(items);
@@ -193,19 +191,23 @@ export async function buscarProspectosConApify(
  *
  * La keyword se recibe ya seleccionada desde buscarProspectosConApify(),
  * que rota por ONLINE_SEARCH_KEYWORDS según el día del año.
+ *
+ * NOTA IMPORTANTE: El parámetro `location` de memo23 NO es un filtro geográfico real.
+ * Hace búsqueda de texto, por lo que `location: 'Spain'` devuelve perfiles con
+ * "Spain" en el nombre o empresa (Nick Spain, Mark Spain, Connector Subsea Solutions...).
+ * Por eso NO pasamos location — buscamos globalmente por keyword y dejamos que el
+ * filtro ICP de cargo/bio seleccione los perfiles relevantes.
  */
 async function buscarConMemo23(
   actorId: string,
   token: string,
   keyword: string,
-  location: string,
 ): Promise<ProspectoCrudo[]> {
-  console.log(`[Apify] memo23 búsqueda: "${keyword}" en ${location}`);
+  console.log(`[Apify] memo23 búsqueda global: "${keyword}"`);
 
   const rawItems = await ejecutarActorSync(actorId, token, {
     mode: 'public',
     query: keyword,
-    location,
     maxResults: 50,
   });
 
