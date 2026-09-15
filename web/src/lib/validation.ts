@@ -25,11 +25,21 @@ export function esUrlLinkedInValida(url: string): boolean {
   return LINKEDIN_URL_REGEX.test((url || '').trim());
 }
 
-/** Validación estricta para INSERTAR un prospecto nuevo: país obligatorio + ICP online. */
+/** Validación estricta para INSERTAR un prospecto nuevo: ICP online obligatorio, país opcional. */
 export function esProspectoValido(p: ProspectoCrudo): boolean {
-  if (!paisPermitido(p.ubicacion)) return false;
-  if (!p.nombre?.trim() || !p.cargo?.trim() || !esUrlLinkedInValida(p.url)) {
+  if (!p.nombre?.trim() || !esUrlLinkedInValida(p.url)) {
     return false;
+  }
+
+  // Cargo es necesario para validar el ICP
+  if (!p.cargo?.trim()) return false;
+
+  // Si hay ubicación explícita, debe ser un país permitido (ES/GB/US/CA).
+  // Si la ubicación está vacía (el enriquecedor falló o el perfil no la tiene),
+  // dejamos pasar — se guardará con pais=NULL y la UI lo mostrará igualmente.
+  if (p.ubicacion?.trim()) {
+    const pais = paisPermitido(p.ubicacion);
+    if (pais === null) return false; // país explícito no permitido → descartar
   }
 
   const textToSearch = `${p.cargo} ${p.bio || ''}`.toLowerCase();
