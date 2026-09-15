@@ -152,8 +152,14 @@ export async function buscarProspectosDeHoy(
       const fechaPost  = postScraper?.fecha || c.prospecto.ultimoPostFecha || null;
       
       if (esTextoPostValido(textoPost) && esPostReciente(fechaPost)) {
+        // Tiene post reciente válido: boost máximo de score y se puede comentar
         c.tienePostReal = true;
         c.score += 1000;
+        validos.push(c);
+      } else {
+        // Sin post reciente: se guarda igualmente (conexión sin comentario) con score base
+        // El motor de personalización omitirá el comentario de post para estos perfiles.
+        c.tienePostReal = false;
         validos.push(c);
       }
     }

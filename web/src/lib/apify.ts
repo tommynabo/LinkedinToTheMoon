@@ -206,7 +206,7 @@ async function buscarConMemo23(
     mode: 'public',
     query: keyword,
     location,
-    maxResults: 25,
+    maxResults: 50,
   });
 
   // Normalizar y deduplicar
