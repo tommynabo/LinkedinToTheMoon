@@ -33,7 +33,7 @@ export async function ejecutarRutinaDiaria(urlDashboard: string): Promise<Resume
 
   try {
     const post = await generarPostDelDia();
-    lineas.push(`✅ Post del día generado (pilar: ${post.pilar})${post.conImagen ? ' con imagen de portada' : ''}.`);
+    lineas.push(`✅ Post ${post.tipo} generado: ${post.tema} (${post.fuentes} fuente(s))${post.fallback ? ' usando fallback técnico' : ''}${post.conImagen ? ' con imagen de portada' : ''}.`);
   } catch (err) {
     huboError = true;
     lineas.push(`❌ Motor de contenido falló: ${(err as Error).message}`);

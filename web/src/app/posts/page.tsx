@@ -29,6 +29,7 @@ export default async function PostsPage() {
             <tr>
               <th>Fecha</th>
               <th>Pilar</th>
+              <th>Tema / fuentes</th>
               <th>Post completo</th>
               <th>Imagen</th>
               <th>Estado / Link / Métricas</th>
@@ -39,6 +40,13 @@ export default async function PostsPage() {
               <tr key={post.id}>
                 <td>{new Date(post.fecha).toLocaleDateString('es-ES')}</td>
                 <td>{post.pilar}</td>
+                <td style={{ minWidth: 210 }}>
+                  <strong>{post.tema || '—'}</strong>
+                  <div className="muted">{post.tipo_contenido || 'tecnico'}</div>
+                  {post.fuentes?.map((fuente) => (
+                    <div key={fuente.url}><a href={fuente.url} target="_blank" rel="noreferrer">{fuente.titulo}</a></div>
+                  ))}
+                </td>
                 <td style={{ minWidth: 380 }}>
                   <pre style={{
                     whiteSpace: 'pre-wrap',
@@ -75,6 +83,12 @@ export default async function PostsPage() {
                       placeholder="Likes + comentarios"
                       defaultValue={post.likes_comentarios ?? ''}
                     />
+                    <input
+                      type="number"
+                      name="impresiones"
+                      placeholder="Impresiones"
+                      defaultValue={post.impresiones ?? ''}
+                    />
                     <button type="submit">Guardar</button>
                   </form>
                   <form action={deletePostAction} style={{ marginTop: 6 }}>
@@ -86,7 +100,7 @@ export default async function PostsPage() {
             ))}
             {posts.length === 0 && (
               <tr>
-                <td colSpan={5} className="muted">
+                <td colSpan={6} className="muted">
                   Todavía no hay posts generados.
                 </td>
               </tr>

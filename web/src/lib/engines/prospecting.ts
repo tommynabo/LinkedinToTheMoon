@@ -75,7 +75,10 @@ export async function buscarProspectosDeHoy(
   let candidatos: ProspectoCrudo[] = [];
 
   if (tieneApifyConfigurado()) {
-    candidatos = await buscarProspectosConApify(faltantes);
+    // keyword y location vienen del entorno (run_prospecting_icp.ts los inyecta antes de llamar aquí)
+    const keyword = process.env.APIFY_SEARCH_QUERY?.split(',')[0]?.trim();
+    const location = process.env.APIFY_LOCATIONS?.split(',')[0]?.trim();
+    candidatos = await buscarProspectosConApify(keyword, location);
     if (candidatos.length > 0) fuente = nuevosPromovidos > 0 ? 'Mixta' : 'Apify';
   }
 
@@ -162,7 +165,7 @@ export async function buscarProspectosDeHoy(
 
   console.log(`[Prospecting] Iniciando validación y extracción de todos los candidatos. Objetivo para hoy: ${faltantes} leads.`);
 
-  // Procesamos ABSOLUTAMENTE TODOS los candidatos válidos, porque los que sobren irán a la Reserva.
+  // Procesamos solo los necesarios para hoy para ahorrar créditos de Apify.
   const queueTotal = [...deEspanaAll, ...restoAll].sort((a, b) => b.score - a.score);
   const elegidosFinales: any[] = [];
 
@@ -170,6 +173,11 @@ export async function buscarProspectosDeHoy(
     const chunk = queueTotal.splice(0, chunkSize);
     const validos = await procesarPostParaChunk(chunk);
     elegidosFinales.push(...validos);
+    
+    if (elegidosFinales.length >= faltantes) {
+      console.log(`[Prospecting] Alcanzados ${elegidosFinales.length} prospectos válidos. Deteniendo extracción de posts para ahorrar créditos.`);
+      break;
+    }
   }
 
   const deEspanaValidos = elegidosFinales.filter((c) => c.esEspana).sort((a, b) => b.score - a.score);

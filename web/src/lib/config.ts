@@ -5,6 +5,7 @@
  */
 
 export const DEFAULT_CLAUDE_MODEL = 'claude-haiku-4-5-20251001';
+export const DEFAULT_CONTENT_CLAUDE_MODEL = 'claude-sonnet-4-6';
 export const DEFAULT_OPENAI_IMAGE_MODEL = 'gpt-image-1';
 
 export const PROSPECTOS_POR_DIA = 25;

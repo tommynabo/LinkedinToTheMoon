@@ -29,7 +29,34 @@ export interface PostRow {
   estado: string;
   link_publicado: string | null;
   likes_comentarios: number | null;
+  impresiones: number | null;
+  tipo_contenido: 'tecnico' | 'actualidad';
+  tema: string | null;
+  fuentes: EditorialSource[] | null;
+  brief_generacion: EditorialBrief | null;
   created_at: string;
+}
+
+export interface EditorialSource {
+  titulo: string;
+  url: string;
+  fecha: string | null;
+}
+
+export interface EditorialFact {
+  afirmacion: string;
+  numeros: string[];
+  sourceUrl: string;
+}
+
+export interface EditorialBrief {
+  tema: string;
+  tesis: string;
+  angulo: string;
+  estructura: 'noticia' | 'recurso' | 'tutorial' | 'contrarian' | 'caso-tecnico';
+  hechos: EditorialFact[];
+  fuentes: EditorialSource[];
+  fallback?: boolean;
 }
 
 export interface ProspectoRow {
@@ -69,6 +96,8 @@ export interface IdeaRow {
   id: number;
   idea: string;
   pilar_sugerido: string | null;
+  tipo_contenido: 'tecnico' | 'actualidad';
+  fuente_url: string | null;
   usado: boolean;
   created_at: string;
 }

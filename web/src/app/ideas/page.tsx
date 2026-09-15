@@ -1,5 +1,6 @@
 import { getIdeas } from '@/lib/queries';
 import { addIdeaAction } from '@/lib/actions';
+import { CONTENT_PILLARS } from '@/lib/config';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,12 +18,15 @@ export default async function IdeasPage() {
       <div className="card">
         <form action={addIdeaAction} className="inline">
           <input type="text" name="idea" placeholder="Idea para un post" required style={{ flex: 2, padding: '6px 10px' }} />
-          <input
-            type="text"
-            name="pilar_sugerido"
-            placeholder="Pilar sugerido (opcional)"
-            style={{ flex: 1, padding: '6px 10px' }}
-          />
+          <select name="tipo_contenido" defaultValue="tecnico">
+            <option value="tecnico">Técnico</option>
+            <option value="actualidad">Actualidad</option>
+          </select>
+          <select name="pilar_sugerido" defaultValue="">
+            <option value="">Pilar automático</option>
+            {CONTENT_PILLARS.map((pilar) => <option key={pilar.nombre} value={pilar.nombre}>{pilar.nombre}</option>)}
+          </select>
+          <input type="url" name="fuente_url" placeholder="Fuente (opcional)" style={{ flex: 1, padding: '6px 10px' }} />
           <button type="submit">Añadir idea</button>
         </form>
       </div>
@@ -33,6 +37,8 @@ export default async function IdeasPage() {
             <tr>
               <th>Idea</th>
               <th>Pilar sugerido</th>
+              <th>Tipo</th>
+              <th>Fuente</th>
               <th>Usado</th>
             </tr>
           </thead>
@@ -41,12 +47,14 @@ export default async function IdeasPage() {
               <tr key={idea.id}>
                 <td>{idea.idea}</td>
                 <td>{idea.pilar_sugerido || '—'}</td>
+                <td>{idea.tipo_contenido}</td>
+                <td>{idea.fuente_url ? <a href={idea.fuente_url} target="_blank" rel="noreferrer">Abrir</a> : '—'}</td>
                 <td>{idea.usado ? '✅' : '⏳'}</td>
               </tr>
             ))}
             {ideas.length === 0 && (
               <tr>
-                <td colSpan={3} className="muted">
+                <td colSpan={5} className="muted">
                   Todavía no hay ideas guardadas.
                 </td>
               </tr>

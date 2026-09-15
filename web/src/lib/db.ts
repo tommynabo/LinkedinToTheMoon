@@ -57,9 +57,19 @@ async function crearTablas(): Promise<void> {
       estado TEXT NOT NULL DEFAULT 'Borrador',
       link_publicado TEXT,
       likes_comentarios INTEGER,
+      impresiones INTEGER,
+      tipo_contenido TEXT NOT NULL DEFAULT 'tecnico',
+      tema TEXT,
+      fuentes JSONB,
+      brief_generacion JSONB,
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
   `;
+  await sql`ALTER TABLE posts ADD COLUMN IF NOT EXISTS impresiones INTEGER;`;
+  await sql`ALTER TABLE posts ADD COLUMN IF NOT EXISTS tipo_contenido TEXT NOT NULL DEFAULT 'tecnico';`;
+  await sql`ALTER TABLE posts ADD COLUMN IF NOT EXISTS tema TEXT;`;
+  await sql`ALTER TABLE posts ADD COLUMN IF NOT EXISTS fuentes JSONB;`;
+  await sql`ALTER TABLE posts ADD COLUMN IF NOT EXISTS brief_generacion JSONB;`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS prospectos (
@@ -125,10 +135,14 @@ async function crearTablas(): Promise<void> {
       id SERIAL PRIMARY KEY,
       idea TEXT NOT NULL,
       pilar_sugerido TEXT,
+      tipo_contenido TEXT NOT NULL DEFAULT 'tecnico',
+      fuente_url TEXT,
       usado BOOLEAN NOT NULL DEFAULT false,
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
   `;
+  await sql`ALTER TABLE ideas ADD COLUMN IF NOT EXISTS tipo_contenido TEXT NOT NULL DEFAULT 'tecnico';`;
+  await sql`ALTER TABLE ideas ADD COLUMN IF NOT EXISTS fuente_url TEXT;`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS cron_runs (

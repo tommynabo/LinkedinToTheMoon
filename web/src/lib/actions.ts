@@ -51,10 +51,12 @@ export async function updatePostRow(formData: FormData): Promise<void> {
   const linkPublicado = String(formData.get('link_publicado') || '') || null;
   const likesRaw = formData.get('likes_comentarios');
   const likes = likesRaw !== null && likesRaw !== '' ? Number(likesRaw) : null;
+  const impresionesRaw = formData.get('impresiones');
+  const impresiones = impresionesRaw !== null && impresionesRaw !== '' ? Number(impresionesRaw) : null;
 
   await sql`
     UPDATE posts
-    SET estado = ${estado}, link_publicado = ${linkPublicado}, likes_comentarios = ${likes}
+    SET estado = ${estado}, link_publicado = ${linkPublicado}, likes_comentarios = ${likes}, impresiones = ${impresiones}
     WHERE id = ${id}
   `;
   revalidatePath('/posts');
@@ -72,8 +74,14 @@ export async function addIdeaAction(formData: FormData): Promise<void> {
   await ensureSchema();
   const idea = String(formData.get('idea') || '').trim();
   const pilarSugerido = String(formData.get('pilar_sugerido') || '').trim() || null;
+  const tipo = String(formData.get('tipo_contenido') || 'tecnico');
+  const fuenteUrl = String(formData.get('fuente_url') || '').trim() || null;
   if (!idea) return;
-  await sql`INSERT INTO ideas (idea, pilar_sugerido) VALUES (${idea}, ${pilarSugerido})`;
+  if (!['tecnico', 'actualidad'].includes(tipo)) return;
+  await sql`
+    INSERT INTO ideas (idea, pilar_sugerido, tipo_contenido, fuente_url)
+    VALUES (${idea}, ${pilarSugerido}, ${tipo}, ${fuenteUrl})
+  `;
   revalidatePath('/ideas');
 }
 

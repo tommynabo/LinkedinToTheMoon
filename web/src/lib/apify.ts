@@ -68,7 +68,7 @@ async function ejecutarActorSync(
       return (await response.json()) as Record<string, any>[];
     } catch (err: any) {
       lastError = err;
-      const esErrorDeServidor = err.message && err.message.includes('HTTP 5');
+      const esErrorDeServidor = err.message && (err.message.includes('HTTP 5') || err.message.includes('HTTP 400'));
       const esErrorDeRed = err.name === 'FetchError' || err.name === 'TypeError'; // fetch network errs
       if (attempt < retries && (esErrorDeServidor || esErrorDeRed)) {
         await new Promise((resolve) => setTimeout(resolve, attempt * 3000));
@@ -132,133 +132,97 @@ function deduplicarPorUrl(items: Record<string, any>[]): ProspectoCrudo[] {
   return candidatos;
 }
 
-/** Lanza el/los actor(es) de Apify de forma síncrona y devuelve los candidatos normalizados. */
+/**
+ * Lanza una búsqueda Apify para UNA keyword concreta y devuelve los candidatos normalizados.
+ *
+ * La selección de qué keyword usar y en qué ubicación corresponde al llamador
+ * (run_prospecting_icp.ts o engines/prospecting.ts), que rota por ONLINE_SEARCH_KEYWORDS.
+ * Esto permite buscar keyword a keyword hasta llenar el cupo diario, parando en cuanto
+ * se llega a los 25 para no gastar créditos extra.
+ *
+ * @param keyword  Término exacto de búsqueda (ej: 'consultor SEO'). Sin OR compuesto.
+ * @param location Ubicación para la búsqueda (ej: 'Spain'). Una sola por llamada.
+ */
 export async function buscarProspectosConApify(
-  objetivo = PROSPECTOS_POR_DIA
+  keyword?: string,
+  location?: string,
 ): Promise<ProspectoCrudo[]> {
   const token = process.env.APIFY_API_TOKEN;
   const actorId = process.env.APIFY_ACTOR_ID;
   if (!token || !actorId) return [];
 
   if (esActorDePosts(actorId)) {
-    return buscarProspectosPorPosts(actorId, token, objetivo);
+    return buscarProspectosPorPosts(actorId, token, PROSPECTOS_POR_DIA);
   }
 
-  const searchQuery = process.env.APIFY_SEARCH_QUERY || ONLINE_SEARCH_KEYWORDS.join(' OR ');
-  const locationsOverride = (process.env.APIFY_LOCATIONS || '')
-    .split(',')
-    .map((l) => l.trim())
-    .filter((l) => paisPermitido(l) !== null);
+  // Seleccionar keyword: parámetro explícito > env override > rotación por día
+  const now = new Date();
+  const dayOfYear = Math.floor(
+    (now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 1000 / 60 / 60 / 24
+  );
+  const keywordFinal =
+    keyword ??
+    (process.env.APIFY_SEARCH_QUERY ? process.env.APIFY_SEARCH_QUERY.split(',')[0].trim() : null) ??
+    ONLINE_SEARCH_KEYWORDS[dayOfYear % ONLINE_SEARCH_KEYWORDS.length];
+
+  const locationFinal = location ?? process.env.APIFY_LOCATIONS?.split(',')[0]?.trim() ?? UBICACION_PRIORITARIA;
 
   if (esActorMemo23(actorId)) {
-    return buscarConMemo23(actorId, token, locationsOverride);
+    return buscarConMemo23(actorId, token, keywordFinal, locationFinal);
   }
 
-  const base = (maxItems: number) => ({
+  // Fallback para harvestapi u otros actores
+  const items = await ejecutarActorSync(actorId, token, {
     profileScraperMode: 'Full',
-    searchQuery,
-    maxItems,
-    takePages: Math.max(1, Math.ceil(maxItems / 25)),
+    searchQuery: keywordFinal,
+    maxItems: 25,
+    takePages: 1,
+    locations: [locationFinal],
   });
-
-  if (locationsOverride.length > 0) {
-    // El usuario definió ubicaciones explícitas: se respetan tal cual, una sola búsqueda.
-    const items = await ejecutarActorSync(actorId, token, {
-      ...base(PROSPECTOS_POR_DIA * 3),
-      locations: locationsOverride,
-    });
-    return deduplicarPorUrl(items);
-  }
-
-  // Pool grande sesgado a España (mínimo MINIMO_ESPANA_POR_DIA en config.ts) + pool pequeño
-  // limitado a los otros países permitidos para el resto de huecos, en paralelo. El resultado
-  // combinado se filtra/prioriza por país real en engines/prospecting.ts.
-  const poolEspana = Math.max(PROSPECTOS_POR_DIA * 3, 60);
-  const poolResto = PROSPECTOS_POR_DIA;
-
-  const [itemsEspana, itemsResto] = await Promise.all([
-    ejecutarActorSync(actorId, token, { ...base(poolEspana), locations: [UBICACION_PRIORITARIA] }),
-    ejecutarActorSync(actorId, token, { ...base(poolResto), locations: PAISES_BUSQUEDA.slice(1) }),
-  ]);
-
-  return deduplicarPorUrl([...itemsEspana, ...itemsResto]);
+  return deduplicarPorUrl(items);
 }
 
 /**
- * `memo23/linkedin-people-search` no acepta un array de ubicaciones (solo un `location`
- * string), así que hacemos DOS grupos de búsquedas por separado: uno con `location` fijado
- * a España (para garantizar MINIMO_ESPANA_POR_DIA candidatos reales de España, ver
- * config.ts y prospecting.ts) y otro limitado a los otros países permitidos para el resto de huecos
- * (Reino Unido, Estados Unidos o Canadá). Si el usuario definió APIFY_LOCATIONS se usa solo la
- * primera ubicación de la lista en vez de España para el grupo sesgado (el actor solo
- * admite una).
+ * `memo23/linkedin-people-search` usa una búsqueda Google/Bing pública.
  *
- * IMPORTANTE (verificado empíricamente): este actor lanza una búsqueda tipo
- * Google/Bing por debajo, y una única query con muchos términos unidos por "OR" se queda
- * corta (~15-20 resultados únicos aunque pidas maxResults mucho más alto), porque el motor
- * de búsqueda público solo profundiza tanto en una query compuesta. Lanzar UNA búsqueda POR
- * KEYWORD por separado (en paralelo) da bastantes más resultados únicos en total para el
- * mismo coste aproximado. Ver /memories/repo para el detalle de esta medición.
+ * Estrategia de mínimo coste:
+ * 1. Buscar UNA sola keyword por llamada (no OR compuesto) — más resultados, más estable.
+ * 2. Pre-filtrar por cargo ANTES de enriquecer (ahorra ~80% de créditos del enriquecedor).
+ * 3. Usar maxResults: 25 — suficiente para el pre-filtro sin gastar créditos extra.
+ * 4. Enriquecer SOLO los candidatos que pasan el pre-filtro ICP.
+ *
+ * La keyword se recibe ya seleccionada desde buscarProspectosConApify(),
+ * que rota por ONLINE_SEARCH_KEYWORDS según el día del año.
  */
 async function buscarConMemo23(
   actorId: string,
   token: string,
-  locationsOverride: string[]
+  keyword: string,
+  location: string,
 ): Promise<ProspectoCrudo[]> {
-  const keywordsPrincipales = process.env.APIFY_SEARCH_QUERY
-    ? process.env.APIFY_SEARCH_QUERY.split(',').map((k) => k.trim()).filter(Boolean)
-    : ONLINE_SEARCH_KEYWORDS;
-  const keywordsResto = process.env.APIFY_SEARCH_QUERY_GLOBAL
-    ? process.env.APIFY_SEARCH_QUERY_GLOBAL.split(',').map((k) => k.trim()).filter(Boolean)
-    : ONLINE_SEARCH_KEYWORDS;
-  const ubicacionEspana = locationsOverride[0] || UBICACION_PRIORITARIA;
-  const ubicacionesResto = locationsOverride.length > 0 ? locationsOverride : PAISES_BUSQUEDA.slice(1);
+  console.log(`[Apify] memo23 búsqueda: "${keyword}" en ${location}`);
 
-  // Optimización de créditos: Usamos el día del año para rotar palabras clave y no buscar todas a la vez
-  const now = new Date();
-  const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 1000 / 60 / 60 / 24);
-  
-  // Elegimos 2 keywords principales para España y 1 para global basándonos en el día
-  const rotacionEspana = [
-    keywordsPrincipales[dayOfYear % keywordsPrincipales.length],
-    keywordsPrincipales[(dayOfYear + 1) % keywordsPrincipales.length]
-  ];
-  
-  const keywordsDisponiblesResto = [...keywordsPrincipales, ...keywordsResto];
-  const rotacionResto = [
-    keywordsDisponiblesResto[dayOfYear % keywordsDisponiblesResto.length]
-  ];
+  const rawItems = await ejecutarActorSync(actorId, token, {
+    mode: 'public',
+    query: keyword,
+    location,
+    maxResults: 25,
+  });
 
-  console.log(`[Apify] Rotación del día ${dayOfYear}: España -> ${rotacionEspana.join(', ')} | Global -> ${rotacionResto.join(', ')}`);
+  // Normalizar y deduplicar
+  const candidatos = deduplicarPorUrl(rawItems);
 
-  const resultadosEspana = await Promise.all(
-    rotacionEspana.map((keywords) =>
-      ejecutarActorSync(actorId, token, {
-        mode: 'public',
-        keywords,
-        location: ubicacionEspana,
-        maxResults: 100, // Límite incrementado temporalmente para asegurar volumen
-      })
-    )
-  );
+  // PRE-FILTRO ICP barato (sin llamar al enriquecedor aún).
+  // esProfesionalOnline() devuelve true para cargo vacío (pasa al enriquecedor)
+  // y filtra los claramente no-ICP (dentistas, restaurantes, etc.).
+  const preFiltered = candidatos.filter((p) => esProfesionalOnline(p.cargo, p.bio));
+  console.log(`[Apify] Pre-filtro ICP: ${preFiltered.length}/${candidatos.length} pasan`);
 
-  const resultadosResto = await Promise.all(
-    rotacionResto.map((keywords) =>
-      ejecutarActorSync(actorId, token, { 
-        mode: 'public', 
-        keywords,
-        location: ubicacionesResto[dayOfYear % ubicacionesResto.length],
-        maxResults: 100 // Límite incrementado
-      }) 
-    )
-  );
+  if (preFiltered.length === 0) return [];
 
-  const candidatos = deduplicarPorUrl([...resultadosEspana.flat(), ...resultadosResto.flat()]);
-  // El modo `public` casi nunca devuelve headline/location reales (LinkedIn muestra el muro
-  // genérico de "hazte miembro" a visitantes anónimos) — sin esto, la validación de país/ICP
-  // descarta casi todo. Ver /memories/repo para el detalle de esta medición (2026-09-13).
-  await enriquecerPerfiles(candidatos, token);
-  return candidatos;
+  // Enriquecer SOLO los que pasaron el pre-filtro (cargo/ubicación reales desde LinkedIn)
+  await enriquecerPerfiles(preFiltered, token);
+  return preFiltered;
 }
 
 /**
@@ -310,6 +274,7 @@ async function buscarProspectosPorPosts(
       ejecutarActorSync(actorId, token, {
         searchQueries: [keyword],
         maxPosts,
+        datePosted: 'past-month',
       })
     )
   );

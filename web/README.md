@@ -7,6 +7,29 @@ Vercel Cron. No requiere Google Sheets ni Apps Script.
 Todo el frontend funciona como un "spreadsheet" simple (tablas editables por fila), pero los
 datos viven en una base de datos Postgres real dentro de Vercel.
 
+## Motor editorial
+
+El motor crea un borrador al día y publica siempre de forma manual. Cada semana genera cuatro
+posts técnicos (lunes, miércoles, viernes y domingo) y tres de actualidad, recursos o datos
+curiosos sobre IA/tecnología (martes, jueves y sábado), usando `Europe/Madrid`.
+
+La generación ocurre en dos fases: Sonnet prepara un brief con tema, tesis, hechos y fuentes;
+después redacta el post desde ese material. Los posts de actualidad usan la búsqueda web de
+Anthropic, con hasta tres búsquedas por borrador. Las fuentes quedan visibles en `/posts` y solo
+se incorporan al texto cuando son necesarias, por ejemplo para un curso o vídeo. Si la búsqueda
+no está disponible, falla o no aporta fuentes suficientes, el motor genera un post técnico y lo
+marca como fallback en el resumen diario. Nunca publica un dato factual sin fuente verificable.
+
+`CONTENT_CLAUDE_MODEL` controla este motor y por defecto usa `claude-sonnet-4-6`; `CLAUDE_MODEL`
+sigue usándose para mensajes y comentarios. Activa Web Search en Claude Console antes de desplegar.
+Anthropic cobra la búsqueda web por uso además de los tokens; consulta su tarifa antes de aumentar
+el límite de búsquedas. Para revisar una muestra sin insertar un post ni consumir una idea:
+
+```bash
+npx tsx --env-file=.env.local scripts/previewContent.ts tecnico
+npx tsx --env-file=.env.local scripts/previewContent.ts actualidad
+```
+
 ## Arquitectura
 
 - **Next.js 16 (App Router)** — frontend + Server Actions (sin API routes extra, salvo el cron).
