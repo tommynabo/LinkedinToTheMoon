@@ -114,15 +114,15 @@ export async function buscarProspectosDeHoy(
 
   let ultimosPosts = new Map<string, { texto: string; url: string; fecha: string | null }>();
 
-  const haceUnMes = new Date();
-  haceUnMes.setMonth(haceUnMes.getMonth() - 1);
-  const unMesMs = haceUnMes.getTime();
+  const haceDosSemanas = new Date();
+  haceDosSemanas.setDate(haceDosSemanas.getDate() - 14);
+  const dosSemanasMs = haceDosSemanas.getTime();
 
   function esPostReciente(fechaStr: string | null | undefined): boolean {
     if (!fechaStr) return true;
     const fecha = new Date(fechaStr).getTime();
     if (Number.isNaN(fecha)) return true;
-    return fecha >= unMesMs;
+    return fecha >= dosSemanasMs;
   }
 
   function esTextoPostValido(texto: string | null | undefined): boolean {
@@ -151,14 +151,9 @@ export async function buscarProspectosDeHoy(
       const fechaPost  = postScraper?.fecha || c.prospecto.ultimoPostFecha || null;
       
       if (esTextoPostValido(textoPost) && esPostReciente(fechaPost)) {
-        // Tiene post reciente válido: boost máximo de score y se puede comentar
+        // Tiene post reciente válido (<= 14 días): se acepta el lead
         c.tienePostReal = true;
         c.score += 1000;
-        validos.push(c);
-      } else {
-        // Sin post reciente: se guarda igualmente (conexión sin comentario) con score base
-        // El motor de personalización omitirá el comentario de post para estos perfiles.
-        c.tienePostReal = false;
         validos.push(c);
       }
     }
