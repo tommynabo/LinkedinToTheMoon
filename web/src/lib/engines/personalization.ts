@@ -38,7 +38,7 @@ export async function personalizarMensajesYAudios(): Promise<ResultadoPersonaliz
     ultimo_post_texto: string | null;
   }>`
     SELECT id, nombre, url_perfil, ubicacion, cargo, dato_personalizado, ultimo_post_texto FROM prospectos
-    WHERE pais IN ('ES', 'GB', 'US', 'CA') AND estado = 'Pendiente' AND (texto_mensaje IS NULL OR texto_mensaje = '')
+    WHERE (pais IN ('ES', 'GB', 'US', 'CA') OR pais IS NULL) AND estado = 'Pendiente' AND (texto_mensaje IS NULL OR texto_mensaje = '')
     ORDER BY score DESC, id ASC
   `;
 
@@ -226,13 +226,13 @@ export async function regenerarMensajesExistentes(
     ultimo_post_texto: string | null;
   }>`
     SELECT id, nombre, url_perfil, ubicacion, cargo, dato_personalizado, ultimo_post_texto FROM prospectos
-    WHERE pais IN ('ES', 'GB', 'US', 'CA') AND estado IN ('Pendiente', 'Comentado')
+    WHERE (pais IN ('ES', 'GB', 'US', 'CA') OR pais IS NULL) AND estado IN ('Pendiente', 'Comentado')
     ORDER BY score DESC, id ASC
     LIMIT ${limit} OFFSET ${offset}
   `;
 
   const { rows: countRows } = await sql<{ total: string }>`
-    SELECT COUNT(*) as total FROM prospectos WHERE pais IN ('ES', 'GB', 'US', 'CA') AND estado IN ('Pendiente', 'Comentado')
+    SELECT COUNT(*) as total FROM prospectos WHERE (pais IN ('ES', 'GB', 'US', 'CA') OR pais IS NULL) AND estado IN ('Pendiente', 'Comentado')
   `;
   const total = parseInt(countRows[0]?.total || '0', 10);
 
@@ -275,7 +275,7 @@ export async function regenerarComentariosExistentes(
     ultimo_post_texto: string | null;
   }>`
     SELECT id, nombre, url_perfil, ubicacion, dato_personalizado, cargo, ultimo_post_texto FROM prospectos
-    WHERE pais IN ('ES', 'GB', 'US', 'CA') AND estado IN ('Pendiente', 'Comentado')
+    WHERE (pais IN ('ES', 'GB', 'US', 'CA') OR pais IS NULL) AND estado IN ('Pendiente', 'Comentado')
       AND ultimo_post_texto IS NOT NULL
       AND LENGTH(ultimo_post_texto) >= ${MIN_POST_CHARS}
     ORDER BY score DESC, id ASC
@@ -284,7 +284,7 @@ export async function regenerarComentariosExistentes(
 
   const { rows: countRows } = await sql<{ total: string }>`
     SELECT COUNT(*) as total FROM prospectos
-    WHERE pais IN ('ES', 'GB', 'US', 'CA') AND estado IN ('Pendiente', 'Comentado')
+    WHERE (pais IN ('ES', 'GB', 'US', 'CA') OR pais IS NULL) AND estado IN ('Pendiente', 'Comentado')
       AND ultimo_post_texto IS NOT NULL
       AND LENGTH(ultimo_post_texto) >= ${MIN_POST_CHARS}
   `;
