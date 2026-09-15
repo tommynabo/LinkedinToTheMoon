@@ -54,12 +54,17 @@ async function ejecutarActorSync(
 
   let lastError: Error | null = null;
   for (let attempt = 1; attempt <= retries; attempt++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 120000); // 120s timeout
+
     try {
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(input),
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
 
       if (!response.ok) {
         throw new Error(`Error llamando a Apify (HTTP ${response.status}): ${await response.text()}`);
@@ -67,13 +72,14 @@ async function ejecutarActorSync(
 
       return (await response.json()) as Record<string, any>[];
     } catch (err: any) {
+      clearTimeout(timeout);
       lastError = err;
       const esReintentable = err.message &&
         (err.message.includes('HTTP 5') || err.message.includes('HTTP 400') ||
-         err.name === 'FetchError' || err.name === 'TypeError');
+         err.name === 'FetchError' || err.name === 'TypeError' || err.name === 'AbortError');
       if (attempt < retries && esReintentable) {
         const delay = attempt * 5000; // 5s, 10s entre reintentos
-        console.warn(`[Apify] Intento ${attempt} fallido, reintentando en ${delay/1000}s...`);
+        console.warn(`[Apify] Intento ${attempt} fallido (${err.message || err.name}), reintentando en ${delay/1000}s...`);
         await new Promise((resolve) => setTimeout(resolve, delay));
         continue;
       }
