@@ -68,10 +68,13 @@ async function ejecutarActorSync(
       return (await response.json()) as Record<string, any>[];
     } catch (err: any) {
       lastError = err;
-      const esErrorDeServidor = err.message && (err.message.includes('HTTP 5') || err.message.includes('HTTP 400'));
-      const esErrorDeRed = err.name === 'FetchError' || err.name === 'TypeError'; // fetch network errs
-      if (attempt < retries && (esErrorDeServidor || esErrorDeRed)) {
-        await new Promise((resolve) => setTimeout(resolve, attempt * 3000));
+      const esReintentable = err.message &&
+        (err.message.includes('HTTP 5') || err.message.includes('HTTP 400') ||
+         err.name === 'FetchError' || err.name === 'TypeError');
+      if (attempt < retries && esReintentable) {
+        const delay = attempt * 5000; // 5s, 10s entre reintentos
+        console.warn(`[Apify] Intento ${attempt} fallido, reintentando en ${delay/1000}s...`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
         continue;
       }
       throw err;
@@ -145,6 +148,7 @@ function deduplicarPorUrl(items: Record<string, any>[]): ProspectoCrudo[] {
  */
 export async function buscarProspectosConApify(
   keyword?: string,
+  location?: string,
 ): Promise<ProspectoCrudo[]> {
   const token = process.env.APIFY_API_TOKEN;
   const actorId = process.env.APIFY_ACTOR_ID;
@@ -154,7 +158,6 @@ export async function buscarProspectosConApify(
     return buscarProspectosPorPosts(actorId, token, PROSPECTOS_POR_DIA);
   }
 
-  // Seleccionar keyword: parámetro explícito > env override > rotación por día
   const now = new Date();
   const dayOfYear = Math.floor(
     (now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 1000 / 60 / 60 / 24
@@ -164,12 +167,16 @@ export async function buscarProspectosConApify(
     (process.env.APIFY_SEARCH_QUERY ? process.env.APIFY_SEARCH_QUERY.split(',')[0].trim() : null) ??
     ONLINE_SEARCH_KEYWORDS[dayOfYear % ONLINE_SEARCH_KEYWORDS.length];
 
+  const locationFinal =
+    location ??
+    process.env.APIFY_LOCATIONS?.split(',')[0]?.trim() ??
+    UBICACION_PRIORITARIA;
+
   if (esActorMemo23(actorId)) {
-    return buscarConMemo23(actorId, token, keywordFinal);
+    return buscarConMemo23(actorId, token, keywordFinal, locationFinal);
   }
 
   // Fallback para harvestapi u otros actores (sí soportan location como filtro real)
-  const locationFinal = process.env.APIFY_LOCATIONS?.split(',')[0]?.trim() ?? UBICACION_PRIORITARIA;
   const items = await ejecutarActorSync(actorId, token, {
     profileScraperMode: 'Full',
     searchQuery: keywordFinal,
@@ -192,37 +199,33 @@ export async function buscarProspectosConApify(
  * La keyword se recibe ya seleccionada desde buscarProspectosConApify(),
  * que rota por ONLINE_SEARCH_KEYWORDS según el día del año.
  *
- * NOTA IMPORTANTE: El parámetro `location` de memo23 NO es un filtro geográfico real.
- * Hace búsqueda de texto, por lo que `location: 'Spain'` devuelve perfiles con
- * "Spain" en el nombre o empresa (Nick Spain, Mark Spain, Connector Subsea Solutions...).
- * Por eso NO pasamos location — buscamos globalmente por keyword y dejamos que el
- * filtro ICP de cargo/bio seleccione los perfiles relevantes.
+ * IMPORTANTE: el parámetro `location` es OBLIGATORIO en memo23. Sin él el actor
+ * devuelve run-failed (HTTP 400). Usar el país del ICP como ubicación
+ * (Spain, United Kingdom, United States).
  */
 async function buscarConMemo23(
   actorId: string,
   token: string,
   keyword: string,
+  location: string = 'Spain',
 ): Promise<ProspectoCrudo[]> {
-  console.log(`[Apify] memo23 búsqueda global: "${keyword}"`);
+  console.log(`[Apify] memo23: "${keyword}" en ${location}`);
 
   const rawItems = await ejecutarActorSync(actorId, token, {
     mode: 'public',
     query: keyword,
+    location,
     maxResults: 50,
   });
 
-  // Normalizar y deduplicar
   const candidatos = deduplicarPorUrl(rawItems);
 
-  // PRE-FILTRO ICP barato (sin llamar al enriquecedor aún).
-  // esProfesionalOnline() devuelve true para cargo vacío (pasa al enriquecedor)
-  // y filtra los claramente no-ICP (dentistas, restaurantes, etc.).
+  // PRE-FILTRO ICP: filtra claramente no-ICP antes del enriquecedor (ahorra créditos)
   const preFiltered = candidatos.filter((p) => esProfesionalOnline(p.cargo, p.bio));
   console.log(`[Apify] Pre-filtro ICP: ${preFiltered.length}/${candidatos.length} pasan`);
 
   if (preFiltered.length === 0) return [];
 
-  // Enriquecer SOLO los que pasaron el pre-filtro (cargo/ubicación reales desde LinkedIn)
   await enriquecerPerfiles(preFiltered, token);
   return preFiltered;
 }

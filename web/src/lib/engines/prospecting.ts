@@ -75,9 +75,9 @@ export async function buscarProspectosDeHoy(
   let candidatos: ProspectoCrudo[] = [];
 
   if (tieneApifyConfigurado()) {
-    // keyword viene del entorno (run_prospecting_icp.ts lo inyecta antes de llamar aquí)
     const keyword = process.env.APIFY_SEARCH_QUERY?.split(',')[0]?.trim();
-    candidatos = await buscarProspectosConApify(keyword);
+    const location = process.env.APIFY_LOCATIONS?.split(',')[0]?.trim();
+    candidatos = await buscarProspectosConApify(keyword, location);
     if (candidatos.length > 0) fuente = nuevosPromovidos > 0 ? 'Mixta' : 'Apify';
   }
 
